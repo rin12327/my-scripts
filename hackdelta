@@ -1,0 +1,313 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local VirtualUser = game:GetService("VirtualUser")
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+
+if PlayerGui:FindFirstChild("FollowGui") then
+    PlayerGui.FollowGui:Destroy()
+end
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "FollowGui"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = PlayerGui
+
+local Frame = Instance.new("Frame")
+Frame.Size = UDim2.new(0, 280, 0, 380)
+Frame.Position = UDim2.new(0.5, -140, 0.15, 0)
+Frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+Frame.BorderSizePixel = 0
+Frame.Parent = ScreenGui
+Instance.new("UICorner", Frame).CornerRadius = UDim.new(0, 12)
+
+local Title = Instance.new("TextLabel")
+Title.Text = "👣 Follow & Auto Mobile"
+Title.Size = UDim2.new(1, 0, 0, 30)
+Title.BackgroundTransparency = 1
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 16
+Title.Parent = Frame
+
+-- Dragging GUI cho Mobile
+local dragging, dragStart, startPos
+Frame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = Frame.Position
+    end
+end)
+Frame.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = false
+    end
+end)
+game:GetService("UserInputService").InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - dragStart
+        Frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+
+local TextBox = Instance.new("TextBox")
+TextBox.PlaceholderText = "Nhập tên / DisplayName..."
+TextBox.Size = UDim2.new(1, -20, 0, 30)
+TextBox.Position = UDim2.new(0, 10, 0, 40)
+TextBox.Text = ""
+TextBox.TextSize = 14
+TextBox.TextColor3 = Color3.fromRGB(0,0,0)
+TextBox.BackgroundColor3 = Color3.fromRGB(255,255,255)
+TextBox.Parent = Frame
+Instance.new("UICorner", TextBox).CornerRadius = UDim.new(0, 8)
+
+local BehindBox = Instance.new("TextBox")
+BehindBox.PlaceholderText = "Behind (2)"
+BehindBox.Size = UDim2.new(0.5, -15, 0, 30)
+BehindBox.Position = UDim2.new(0, 10, 0, 80)
+BehindBox.Text = "2"
+BehindBox.TextSize = 14
+BehindBox.TextColor3 = Color3.fromRGB(0,0,0)
+BehindBox.BackgroundColor3 = Color3.fromRGB(255,255,255)
+BehindBox.Parent = Frame
+Instance.new("UICorner", BehindBox).CornerRadius = UDim.new(0, 8)
+
+local UnderBox = Instance.new("TextBox")
+UnderBox.PlaceholderText = "Under (5)"
+UnderBox.Size = UDim2.new(0.5, -15, 0, 30)
+UnderBox.Position = UDim2.new(0.5, 5, 0, 80)
+UnderBox.Text = "5"
+UnderBox.TextSize = 14
+UnderBox.TextColor3 = Color3.fromRGB(0,0,0)
+UnderBox.BackgroundColor3 = Color3.fromRGB(255,255,255)
+UnderBox.Parent = Frame
+Instance.new("UICorner", UnderBox).CornerRadius = UDim.new(0, 8)
+
+local UnderBtn = Instance.new("TextButton")
+UnderBtn.Text = "Under: ON"
+UnderBtn.Size = UDim2.new(0.5, -15, 0, 30)
+UnderBtn.Position = UDim2.new(0, 10, 0, 120)
+UnderBtn.TextColor3 = Color3.fromRGB(255,255,255)
+UnderBtn.Font = Enum.Font.GothamBold
+UnderBtn.TextSize = 14
+UnderBtn.BackgroundColor3 = Color3.fromRGB(0,200,100)
+UnderBtn.Parent = Frame
+Instance.new("UICorner", UnderBtn).CornerRadius = UDim.new(0, 8)
+
+local NoclipBtn = Instance.new("TextButton")
+NoclipBtn.Text = "Noclip: ON"
+NoclipBtn.Size = UDim2.new(0.5, -15, 0, 30)
+NoclipBtn.Position = UDim2.new(0.5, 5, 0, 120)
+NoclipBtn.TextColor3 = Color3.fromRGB(255,255,255)
+NoclipBtn.Font = Enum.Font.GothamBold
+NoclipBtn.TextSize = 14
+NoclipBtn.BackgroundColor3 = Color3.fromRGB(0,200,100)
+NoclipBtn.Parent = Frame
+Instance.new("UICorner", NoclipBtn).CornerRadius = UDim.new(0, 8)
+
+local AutoAttackBtn = Instance.new("TextButton")
+AutoAttackBtn.Text = "⚔️ Auto Attack: OFF"
+AutoAttackBtn.Size = UDim2.new(1, -20, 0, 30)
+AutoAttackBtn.Position = UDim2.new(0, 10, 0, 160)
+AutoAttackBtn.TextColor3 = Color3.fromRGB(255,255,255)
+AutoAttackBtn.Font = Enum.Font.GothamBold
+AutoAttackBtn.TextSize = 14
+AutoAttackBtn.BackgroundColor3 = Color3.fromRGB(100,100,200)
+AutoAttackBtn.Parent = Frame
+Instance.new("UICorner", AutoAttackBtn).CornerRadius = UDim.new(0, 8)
+
+local StartBtn = Instance.new("TextButton")
+StartBtn.Text = "▶ Start Follow"
+StartBtn.Size = UDim2.new(1, -20, 0, 30)
+StartBtn.Position = UDim2.new(0, 10, 0, 200)
+StartBtn.TextColor3 = Color3.fromRGB(255,255,255)
+StartBtn.Font = Enum.Font.GothamBold
+StartBtn.TextSize = 14
+StartBtn.BackgroundColor3 = Color3.fromRGB(50,150,250)
+StartBtn.Parent = Frame
+Instance.new("UICorner", StartBtn).CornerRadius = UDim.new(0, 8)
+
+local StopBtn = Instance.new("TextButton")
+StopBtn.Text = "⏹ Stop Follow"
+StopBtn.Size = UDim2.new(1, -20, 0, 30)
+StopBtn.Position = UDim2.new(0, 10, 0, 240)
+StopBtn.TextColor3 = Color3.fromRGB(255,255,255)
+StopBtn.Font = Enum.Font.GothamBold
+StopBtn.TextSize = 14
+StopBtn.BackgroundColor3 = Color3.fromRGB(220,50,50)
+StopBtn.Parent = Frame
+Instance.new("UICorner", StopBtn).CornerRadius = UDim.new(0, 8)
+
+local DeleteBtn = Instance.new("TextButton")
+DeleteBtn.Text = "❌ Close GUI"
+DeleteBtn.Size = UDim2.new(1, -20, 0, 30)
+DeleteBtn.Position = UDim2.new(0, 10, 0, 280)
+DeleteBtn.TextColor3 = Color3.fromRGB(255,255,255)
+DeleteBtn.Font = Enum.Font.GothamBold
+DeleteBtn.TextSize = 14
+DeleteBtn.BackgroundColor3 = Color3.fromRGB(150,0,0)
+DeleteBtn.Parent = Frame
+Instance.new("UICorner", DeleteBtn).CornerRadius = UDim.new(0, 8)
+
+-- Variables
+local connection, noclipConnection
+local attackThread, skillThread
+local UnderMode = true
+local NoclipMode = true
+local AutoAttack = false
+
+UnderBtn.MouseButton1Click:Connect(function()
+    UnderMode = not UnderMode
+    UnderBtn.Text = "Under: " .. (UnderMode and "ON" or "OFF")
+    UnderBtn.BackgroundColor3 = UnderMode and Color3.fromRGB(0,200,100) or Color3.fromRGB(100,100,200)
+end)
+
+NoclipBtn.MouseButton1Click:Connect(function()
+    NoclipMode = not NoclipMode
+    NoclipBtn.Text = "Noclip: " .. (NoclipMode and "ON" or "OFF")
+    NoclipBtn.BackgroundColor3 = NoclipMode and Color3.fromRGB(0,200,100) or Color3.fromRGB(100,100,200)
+end)
+
+AutoAttackBtn.MouseButton1Click:Connect(function()
+    AutoAttack = not AutoAttack
+    AutoAttackBtn.Text = "⚔️ Auto Attack: " .. (AutoAttack and "ON" or "OFF")
+    AutoAttackBtn.BackgroundColor3 = AutoAttack and Color3.fromRGB(0,200,100) or Color3.fromRGB(100,100,200)
+    
+    if not AutoAttack then
+        if attackThread then task.cancel(attackThread); attackThread = nil end
+        if skillThread then task.cancel(skillThread); skillThread = nil end
+    end
+end)
+
+local function startNoclip()
+    if noclipConnection or not NoclipMode then return end
+    noclipConnection = RunService.Stepped:Connect(function()
+        local char = LocalPlayer.Character
+        if char then
+            for _, part in ipairs(char:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = false
+                end
+            end
+        end
+    end)
+end
+
+local function stopNoclip()
+    if noclipConnection then
+        noclipConnection:Disconnect()
+        noclipConnection = nil
+    end
+end
+
+-- Tối ưu đấm/bấm skill cho Mobile
+local function doClick()
+    VirtualUser:Button1Down(Vector2.new(0,0))
+    task.wait(0.05)
+    VirtualUser:Button1Up(Vector2.new(0,0))
+end
+
+local function useSkill(skillNumber)
+    -- Giả lập bấm phím skill dành riêng cho Mobile
+    local keyCodes = {
+        [1] = Enum.KeyCode.One,
+        [2] = Enum.KeyCode.Two,
+        [3] = Enum.KeyCode.Three,
+        [4] = Enum.KeyCode.Four
+    }
+    local key = keyCodes[skillNumber]
+    if key then
+        game:GetService("VirtualInputManager"):SendKeyEvent(true, key, false, game)
+        task.wait(0.05)
+        game:GetService("VirtualInputManager"):SendKeyEvent(false, key, false, game)
+    end
+end
+
+local function startAutoAttackLogic()
+    if not attackThread then
+        attackThread = task.spawn(function()
+            while AutoAttack do
+                doClick()
+                task.wait(0.5) -- Đánh thường 0.5s/lần
+            end
+        end)
+    end
+
+    if not skillThread then
+        skillThread = task.spawn(function()
+            local currentSkill = 1
+            while AutoAttack do
+                useSkill(currentSkill)
+                currentSkill = (currentSkill % 4) + 1
+                task.wait(1.0) -- Spam chiêu 1s/lần
+            end
+        end)
+    end
+end
+
+local function followPlayer(player)
+    if connection then connection:Disconnect() end
+    
+    connection = RunService.RenderStepped:Connect(function()
+        if player and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            local targetHRP = player.Character.HumanoidRootPart
+            local myChar = LocalPlayer.Character
+            if myChar and myChar:FindFirstChild("HumanoidRootPart") then
+                local myHRP = myChar.HumanoidRootPart
+                
+                local behindDist = tonumber(BehindBox.Text) or 2
+                local underDist = tonumber(UnderBox.Text) or 5
+                
+                local targetCFrame = targetHRP.CFrame
+                local posBehind = targetCFrame.Position - (targetCFrame.LookVector * behindDist)
+                
+                if UnderMode then
+                    local finalPos = posBehind - Vector3.new(0, underDist, 0)
+                    local lookCFrame = CFrame.lookAt(finalPos, targetHRP.Position)
+                    myHRP.CFrame = lookCFrame * CFrame.Angles(math.rad(-90), 0, 0)
+                else
+                    myHRP.CFrame = CFrame.new(posBehind, targetHRP.Position)
+                end
+            end
+        end
+    end)
+    
+    startNoclip()
+    if AutoAttack then
+        startAutoAttackLogic()
+    end
+end
+
+StartBtn.MouseButton1Click:Connect(function()
+    local input = string.lower(TextBox.Text)
+    if input == "" then return end
+    local targetPlayer
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if string.find(string.lower(plr.Name), input) or string.find(string.lower(plr.DisplayName), input) then
+            targetPlayer = plr
+            break
+        end
+    end
+    if targetPlayer then
+        followPlayer(targetPlayer)
+        StartBtn.Text = "✅ Following: " .. targetPlayer.DisplayName
+    else
+        StartBtn.Text = "❌ Không tìm thấy"
+        task.delay(1.5, function() StartBtn.Text = "▶ Start Follow" end)
+    end
+end)
+
+StopBtn.MouseButton1Click:Connect(function()
+    if connection then connection:Disconnect() end
+    stopNoclip()
+    if attackThread then task.cancel(attackThread); attackThread = nil end
+    if skillThread then task.cancel(skillThread); skillThread = nil end
+    StartBtn.Text = "▶ Start Follow"
+end)
+
+DeleteBtn.MouseButton1Click:Connect(function()
+    if attackThread then task.cancel(attackThread) end
+    if skillThread then task.cancel(skillThread) end
+    ScreenGui:Destroy()
+end)
