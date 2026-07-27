@@ -275,7 +275,6 @@ Instance.new("UICorner", AntiLagBtn).CornerRadius = UDim.new(0, 6)
 
 AntiLagBtn.MouseButton1Click:Connect(function()
     pcall(function()
-        -- Tắt ánh sáng, sương mù & Xóa Skybox
         Lighting.GlobalShadows = false
         Lighting.FogEnd = 9e9
         Lighting.Brightness = 1
@@ -285,7 +284,6 @@ AntiLagBtn.MouseButton1Click:Connect(function()
             end
         end
 
-        -- Tạo bệ đá đứng chống Void
         local spawnPlatform = Instance.new("Part")
         spawnPlatform.Name = "RonaldoPlatform"
         spawnPlatform.Size = Vector3.new(3000, 10, 3000)
@@ -295,7 +293,6 @@ AntiLagBtn.MouseButton1Click:Connect(function()
         spawnPlatform.Color = Color3.fromRGB(70, 70, 70)
         spawnPlatform.Parent = Workspace
 
-        -- Xóa toàn bộ khối Map & Hiệu ứng VFX
         for _, obj in ipairs(Workspace:GetChildren()) do
             if obj ~= spawnPlatform and not Players:GetPlayerFromCharacter(obj) then
                 if obj:IsA("BasePart") or obj:IsA("Model") or obj:IsA("Folder") then
@@ -304,7 +301,6 @@ AntiLagBtn.MouseButton1Click:Connect(function()
             end
         end
 
-        -- Dọn dẹp Particle/VFX sót lại trong ReplicatedStorage nếu có
         for _, v in ipairs(Workspace:GetDescendants()) do
             if v:IsA("Decal") or v:IsA("Texture") or v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Fire") or v:IsA("Smoke") or v:IsA("Sparkles") then
                 v:Destroy()
@@ -349,7 +345,7 @@ RunService.PreRender:Connect(function()
     end
 end)
 
--- Teleport & Rotate + CAMERA LOCK THEO DÕI TARGET
+-- Teleport & Rotate + CAMERA ĐẶT THEO GÓC NHÌN THỨ 3 CỦA TARGET
 RunService.RenderStepped:Connect(function()
     if followActive and targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
         local myChar = LocalPlayer.Character
@@ -357,19 +353,25 @@ RunService.RenderStepped:Connect(function()
             local targetHRP = targetPlayer.Character.HumanoidRootPart
             local myHRP = myChar.HumanoidRootPart
             
+            -- Tính vị trí nấp dưới chân / sau lưng đối phương
             local targetCF = targetHRP.CFrame
             local posBehind = targetCF.Position - (targetCF.LookVector * behindDist)
             local finalPos = posBehind - Vector3.new(0, underDist, 0)
             
             myHRP.CFrame = CFrame.lookAt(finalPos, targetHRP.Position) * CFrame.Angles(math.rad(-90), 0, 0)
             
-            -- Khóa Camera nhìn thẳng vào Target
+            -- ĐẶT CAMERA Ở GÓC NHÌN THỨ 3 TỪ SAU LƯNG CỦA ĐỐI PHƯƠNG (TARGET)
             local camera = Workspace.CurrentCamera
             camera.CameraType = Enum.CameraType.Scriptable
-            camera.CFrame = CFrame.lookAt(camera.CFrame.Position, targetHRP.Position)
+            
+            -- Đặt camera lùi về sau 8 studs và nhếch lên trên 3 studs tính từ lưng Target
+            local camPos = targetCF.Position - (targetCF.LookVector * 8) + Vector3.new(0, 3, 0)
+            
+            -- Nhìn thẳng về phía trước theo hướng đối phương (hoặc quay về phía bản thân)
+            camera.CFrame = CFrame.lookAt(camPos, targetCF.Position + (targetCF.LookVector * 10))
         end
     else
-        -- Trả Camera về bình thường nếu tắt Target
+        -- Trả Camera về góc nhìn người chơi bình thường khi tắt Target
         local camera = Workspace.CurrentCamera
         if camera.CameraType == Enum.CameraType.Scriptable then
             camera.CameraType = Enum.CameraType.Custom
