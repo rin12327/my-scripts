@@ -1,33 +1,29 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local UserInputService = game:GetService("UserInputService")
 local VirtualInputManager = game:GetService("VirtualInputManager")
 local Workspace = game:GetService("Workspace")
 
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
-local Camera = Workspace.CurrentCamera
 
--- Xóa GUI cũ
-if PlayerGui:FindFirstChild("TSB_Mobile_Gui") then
-    PlayerGui.TSB_Mobile_Gui:Destroy()
+-- Xóa GUI cũ nếu trùng
+if PlayerGui:FindFirstChild("TSB_Mobile_Gui_Fixed") then
+    PlayerGui.TSB_Mobile_Gui_Fixed:Destroy()
 end
 
--- Khởi tạo ScreenGui
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "TSB_Mobile_Gui"
+ScreenGui.Name = "TSB_Mobile_Gui_Fixed"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = PlayerGui
 
--- Nút Toggle Bật/Ẩn GUI nhỏ gọn
+-- Nút Bật/Ẩn Menu nhỏ
 local ToggleBtn = Instance.new("TextButton")
-ToggleBtn.Name = "OpenClose_Btn"
-ToggleBtn.Size = UDim2.new(0, 50, 0, 50)
-ToggleBtn.Position = UDim2.new(0, 10, 0.3, 0)
-ToggleBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+ToggleBtn.Size = UDim2.new(0, 45, 0, 45)
+ToggleBtn.Position = UDim2.new(0, 10, 0.25, 0)
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
 ToggleBtn.Text = "⚡"
-ToggleBtn.TextSize = 25
+ToggleBtn.TextSize = 22
 ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 ToggleBtn.Active = true
 ToggleBtn.Draggable = true
@@ -35,132 +31,139 @@ ToggleBtn.Parent = ScreenGui
 Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(1, 0)
 
 -- Main Frame
-local Frame = Instance.new("Frame")
-Frame.Size = UDim2.new(0, 270, 0, 380)
-Frame.Position = UDim2.new(0.5, -135, 0.1, 0)
-Frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-Frame.BorderSizePixel = 0
-Frame.Active = true
-Frame.Draggable = true
-Frame.Parent = ScreenGui
-Instance.new("UICorner", Frame).CornerRadius = UDim.new(0, 12)
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 260, 0, 320)
+MainFrame.Position = UDim2.new(0.5, -130, 0.15, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Parent = ScreenGui
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
 
 ToggleBtn.MouseButton1Click:Connect(function()
-    Frame.Visible = not Frame.Visible
+    MainFrame.Visible = not MainFrame.Visible
 end)
 
 local Title = Instance.new("TextLabel")
-Title.Text = "🔥 TSB Mobile Ultra Fix"
+Title.Text = "🔥 TSB Mobile Menu Fix"
 Title.Size = UDim2.new(1, 0, 0, 30)
 Title.BackgroundTransparency = 1
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 14
-Title.Parent = Frame
+Title.Parent = MainFrame
 
--- Biến cấu hình
+-- TẠO THANH CUỘN CHO MENU (Chống tràn nút)
+local Container = Instance.new("ScrollingFrame")
+Container.Size = UDim2.new(1, 0, 1, -35)
+Container.Position = UDim2.new(0, 0, 0, 35)
+Container.BackgroundTransparency = 1
+Container.BorderSizePixel = 0
+Container.ScrollBarThickness = 4
+Container.CanvasSize = UDim2.new(0, 0, 0, 480) -- Chiều cao cuộn thoải mái
+Container.Parent = MainFrame
+
+local UIList = Instance.new("UIListLayout", Container)
+UIList.SortOrder = Enum.SortOrder.LayoutOrder
+UIList.Padding = UDim.new(0, 8)
+UIList.HorizontalAlignment = Enum.HorizontalAlignment.Center
+
+-- Cấu hình
 local targetPlayer = nil
 local underDist = 5
 local behindDist = 2
 local autoAttack = false
 local noclipActive = true
 
--- Hàm tạo Dropdown chung
-local function createDropdown(btnText, posPosY, options, onSelect)
-    local btn = Instance.new("TextButton")
-    btn.Text = btnText
-    btn.Size = UDim2.new(1, -20, 0, 30)
-    btn.Position = UDim2.new(0, 10, 0, posPosY)
-    btn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    btn.Font = Enum.Font.Gotham
-    btn.TextSize = 12
-    btn.Parent = Frame
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+-- 1. NÚT CHỌN TARGET
+local TargetBtn = Instance.new("TextButton")
+TargetBtn.Text = "🎯 Target: [Bấm để chọn]"
+TargetBtn.Size = UDim2.new(0.9, 0, 0, 35)
+TargetBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+TargetBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+TargetBtn.Font = Enum.Font.Gotham
+TargetBtn.TextSize = 11
+TargetBtn.Parent = Container
+Instance.new("UICorner", TargetBtn).CornerRadius = UDim.new(0, 6)
 
-    local scroll = Instance.new("ScrollingFrame")
-    scroll.Size = UDim2.new(1, -20, 0, 90)
-    scroll.Position = UDim2.new(0, 10, 0, posPosY + 35)
-    scroll.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    scroll.Visible = false
-    scroll.ZIndex = 20
-    scroll.Parent = Frame
-    
-    local layout = Instance.new("UIListLayout", scroll)
-    layout.SortOrder = Enum.SortOrder.LayoutOrder
+local TargetScroll = Instance.new("ScrollingFrame")
+TargetScroll.Size = UDim2.new(0.9, 0, 0, 100)
+TargetScroll.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+TargetScroll.Visible = false
+TargetScroll.ZIndex = 10
+TargetScroll.Parent = Container
+local TList = Instance.new("UIListLayout", TargetScroll)
 
-    btn.MouseButton1Click:Connect(function()
-        scroll.Visible = not scroll.Visible
-    end)
-
-    local function refreshOptions(customOptions)
-        for _, c in ipairs(scroll:GetChildren()) do
-            if c:IsA("TextButton") then c:Destroy() end
-        end
-        local list = customOptions or options
-        local count = 0
-        for _, val in ipairs(list) do
+TargetBtn.MouseButton1Click:Connect(function()
+    for _, c in ipairs(TargetScroll:GetChildren()) do
+        if c:IsA("TextButton") then c:Destroy() end
+    end
+    local count = 0
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer then
             count = count + 1
             local item = Instance.new("TextButton")
             item.Size = UDim2.new(1, 0, 0, 25)
-            item.Text = tostring(val.label or val)
+            item.Text = p.DisplayName .. " (@" .. p.Name .. ")"
             item.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
             item.TextColor3 = Color3.fromRGB(255, 255, 255)
             item.Font = Enum.Font.Gotham
-            item.TextSize = 11
-            item.ZIndex = 21
-            item.Parent = scroll
-
+            item.TextSize = 10
+            item.ZIndex = 11
+            item.Parent = TargetScroll
             item.MouseButton1Click:Connect(function()
-                onSelect(val)
-                btn.Text = (btnText:split(":")[1]) .. ": " .. tostring(val.label or val)
-                scroll.Visible = false
+                targetPlayer = p
+                TargetBtn.Text = "🎯 Target: " .. p.DisplayName
+                TargetScroll.Visible = false
             end)
         end
-        scroll.CanvasSize = UDim2.new(0, 0, 0, count * 25)
     end
-
-    refreshOptions()
-    return btn, refreshOptions
-end
-
--- 1. Dropdown Chọn Người Chơi
-local targetBtn, refreshTarget = createDropdown("🎯 Target: [Chưa chọn]", 35, {}, function(val)
-    targetPlayer = val.player
+    TargetScroll.CanvasSize = UDim2.new(0, 0, 0, count * 25)
+    TargetScroll.Visible = not TargetScroll.Visible
 end)
 
-local function updatePlayers()
-    local plist = {}
-    for _, p in ipairs(Players:GetPlayers()) do
-        if p ~= LocalPlayer then
-            table.insert(plist, {label = p.DisplayName .. " (@" .. p.Name .. ")", player = p})
-        end
-    end
-    refreshTarget(plist)
-end
-targetBtn.MouseButton1Click:Connect(updatePlayers)
+-- 2. CHỌN UNDER (1 - 10)
+local UnderBtn = Instance.new("TextButton")
+UnderBtn.Text = "📐 Under (Dưới): 5 Studs"
+UnderBtn.Size = UDim2.new(0.9, 0, 0, 35)
+UnderBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+UnderBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+UnderBtn.Font = Enum.Font.Gotham
+UnderBtn.TextSize = 11
+UnderBtn.Parent = Container
+Instance.new("UICorner", UnderBtn).CornerRadius = UDim.new(0, 6)
 
--- 2. Dropdown Chọn Under (1 đến 10)
-local nums = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
-createDropdown("📐 Under (Dưới): 5", 70, nums, function(val)
-    underDist = val
+UnderBtn.MouseButton1Click:Connect(function()
+    underDist = (underDist % 10) + 1
+    UnderBtn.Text = "📐 Under (Dưới): " .. underDist .. " Studs"
 end)
 
--- 3. Dropdown Chọn Behind (1 đến 10)
-createDropdown("🔙 Behind (Sau): 2", 105, nums, function(val)
-    behindDist = val
+-- 3. CHỌN BEHIND (1 - 10)
+local BehindBtn = Instance.new("TextButton")
+BehindBtn.Text = "🔙 Behind (Sau): 2 Studs"
+BehindBtn.Size = UDim2.new(0.9, 0, 0, 35)
+BehindBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+BehindBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+BehindBtn.Font = Enum.Font.Gotham
+BehindBtn.TextSize = 11
+BehindBtn.Parent = Container
+Instance.new("UICorner", BehindBtn).CornerRadius = UDim.new(0, 6)
+
+BehindBtn.MouseButton1Click:Connect(function()
+    behindDist = (behindDist % 10) + 1
+    BehindBtn.Text = "🔙 Behind (Sau): " .. behindDist .. " Studs"
 end)
 
--- 4. Auto Attack Toggle
+-- 4. AUTO ATTACK TOGGLE
 local AutoBtn = Instance.new("TextButton")
 AutoBtn.Text = "⚔️ Auto Attack + Skill: OFF"
-AutoBtn.Size = UDim2.new(1, -20, 0, 35)
-AutoBtn.Position = UDim2.new(0, 10, 0, 145)
+AutoBtn.Size = UDim2.new(0.9, 0, 0, 40)
 AutoBtn.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
 AutoBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 AutoBtn.Font = Enum.Font.GothamBold
-AutoBtn.TextSize = 12
-AutoBtn.Parent = Frame
+AutoBtn.TextSize = 11
+AutoBtn.Parent = Container
 Instance.new("UICorner", AutoBtn).CornerRadius = UDim.new(0, 6)
 
 AutoBtn.MouseButton1Click:Connect(function()
@@ -169,16 +172,15 @@ AutoBtn.MouseButton1Click:Connect(function()
     AutoBtn.BackgroundColor3 = autoAttack and Color3.fromRGB(0, 180, 80) or Color3.fromRGB(180, 50, 50)
 end)
 
--- 5. Anti-Lag & Smooth Material Button
+-- 5. ANTI-LAG BUTTON
 local AntiLagBtn = Instance.new("TextButton")
-AntiLagBtn.Text = "🚀 Anti-Lag (Xóa Rác + Smooth)"
-AntiLagBtn.Size = UDim2.new(1, -20, 0, 30)
-AntiLagBtn.Position = UDim2.new(0, 10, 0, 185)
+AntiLagBtn.Text = "🚀 Anti-Lag (Xóa Rác Map)"
+AntiLagBtn.Size = UDim2.new(0.9, 0, 0, 35)
 AntiLagBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
 AntiLagBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 AntiLagBtn.Font = Enum.Font.Gotham
 AntiLagBtn.TextSize = 11
-AntiLagBtn.Parent = Frame
+AntiLagBtn.Parent = Container
 Instance.new("UICorner", AntiLagBtn).CornerRadius = UDim.new(0, 6)
 
 AntiLagBtn.MouseButton1Click:Connect(function()
@@ -191,19 +193,18 @@ AntiLagBtn.MouseButton1Click:Connect(function()
             end
         end
     end)
-    AntiLagBtn.Text = "✅ Đã Giảm Lag Siêu Mượt!"
+    AntiLagBtn.Text = "✅ Đã Tối Ưu Siêu Mượt!"
 end)
 
--- 6. Noclip Button
+-- 6. NOCLIP TOGGLE
 local NoclipBtn = Instance.new("TextButton")
 NoclipBtn.Text = "👻 Noclip: ON"
-NoclipBtn.Size = UDim2.new(1, -20, 0, 30)
-NoclipBtn.Position = UDim2.new(0, 10, 0, 220)
+NoclipBtn.Size = UDim2.new(0.9, 0, 0, 35)
 NoclipBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 80)
 NoclipBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 NoclipBtn.Font = Enum.Font.Gotham
-NoclipBtn.TextSize = 12
-NoclipBtn.Parent = Frame
+NoclipBtn.TextSize = 11
+NoclipBtn.Parent = Container
 Instance.new("UICorner", NoclipBtn).CornerRadius = UDim.new(0, 6)
 
 NoclipBtn.MouseButton1Click:Connect(function()
@@ -212,16 +213,15 @@ NoclipBtn.MouseButton1Click:Connect(function()
     NoclipBtn.BackgroundColor3 = noclipActive and Color3.fromRGB(0, 180, 80) or Color3.fromRGB(180, 50, 50)
 end)
 
--- 7. Tắt GUI
+-- 7. CLOSE GUI BUTTON
 local CloseBtn = Instance.new("TextButton")
 CloseBtn.Text = "❌ Tắt GUI"
-CloseBtn.Size = UDim2.new(1, -20, 0, 30)
-CloseBtn.Position = UDim2.new(0, 10, 0, 335)
+CloseBtn.Size = UDim2.new(0.9, 0, 0, 35)
 CloseBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
 CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 CloseBtn.Font = Enum.Font.Gotham
-CloseBtn.TextSize = 12
-CloseBtn.Parent = Frame
+CloseBtn.TextSize = 11
+CloseBtn.Parent = Container
 Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0, 6)
 
 CloseBtn.MouseButton1Click:Connect(function()
@@ -229,10 +229,9 @@ CloseBtn.MouseButton1Click:Connect(function()
 end)
 
 ---------------------------------------------------------
--- FIX NOCLIP - CAMERA - POSITION
+-- LOGIC BACKEND (NOCLIP & ATTACK)
 ---------------------------------------------------------
 
--- Fix Noclip mượt không vướng khối
 RunService.Stepped:Connect(function()
     if noclipActive and LocalPlayer.Character then
         for _, part in ipairs(LocalPlayer.Character:GetDescendants()) do
@@ -243,7 +242,6 @@ RunService.Stepped:Connect(function()
     end
 end)
 
--- Teleport chuẩn & Xử lý Camera không bị giật lag
 RunService.RenderStepped:Connect(function()
     if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
         local myChar = LocalPlayer.Character
@@ -251,7 +249,6 @@ RunService.RenderStepped:Connect(function()
             local targetHRP = targetPlayer.Character.HumanoidRootPart
             local myHRP = myChar.HumanoidRootPart
 
-            -- Tính toán tọa độ dưới và sau lưng
             local targetCF = targetHRP.CFrame
             local posBehind = targetCF.Position - (targetCF.LookVector * behindDist)
             local finalPos = posBehind - Vector3.new(0, underDist, 0)
@@ -261,35 +258,27 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
----------------------------------------------------------
--- FIX AUTO ATTACK & SPAM SKILL DÀNH RIÊNG CHO MOBILE TSB
----------------------------------------------------------
-
--- Loop Auto Đánh Thường M1 Mobile
+-- Loop Đánh Thường TSB
 task.spawn(function()
     while true do
         task.wait(0.25)
         if autoAttack and targetPlayer then
             pcall(function()
-                -- Kích hoạt đấm cho Mobile TSB
                 VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 1)
                 task.wait(0.05)
                 VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 1)
-                
-                -- Đấm qua Remote TSB
+
                 local char = LocalPlayer.Character
                 if char then
                     local comm = char:FindFirstChild("Communicate") or ReplicatedStorage:FindFirstChild("Communicate")
-                    if comm then
-                        comm:FireServer({Goal = "LeftClick"})
-                    end
+                    if comm then comm:FireServer({Goal = "LeftClick"}) end
                 end
             end)
         end
     end
 end)
 
--- Loop Spam Chiêu 1, 2, 3, 4 Mobile
+-- Loop Spam Skill TSB (1, 2, 3, 4)
 task.spawn(function()
     local skillIndex = 1
     local keys = {Enum.KeyCode.One, Enum.KeyCode.Two, Enum.KeyCode.Three, Enum.KeyCode.Four}
@@ -297,18 +286,14 @@ task.spawn(function()
         task.wait(1.0)
         if autoAttack and targetPlayer then
             pcall(function()
-                -- Bấm phím skill giả lập
                 VirtualInputManager:SendKeyEvent(true, keys[skillIndex], false, game)
                 task.wait(0.05)
                 VirtualInputManager:SendKeyEvent(false, keys[skillIndex], false, game)
 
-                -- Bấm qua Remote TSB
                 local char = LocalPlayer.Character
                 if char then
                     local comm = char:FindFirstChild("Communicate") or ReplicatedStorage:FindFirstChild("Communicate")
-                    if comm then
-                        comm:FireServer({Goal = "KeyPress", Key = keys[skillIndex]})
-                    end
+                    if comm then comm:FireServer({Goal = "KeyPress", Key = keys[skillIndex]}) end
                 end
             end)
             skillIndex = (skillIndex % 4) + 1
