@@ -345,7 +345,7 @@ RunService.PreRender:Connect(function()
     end
 end)
 
--- Teleport & Rotate + CAMERA ĐẶT THEO GÓC NHÌN THỨ 3 CỦA TARGET
+-- Teleport & CHỈNH MẶT NHÂN VẬT HƯỚNG THẲNG TỪ DƯỚI LÊN MỤC TIÊU
 RunService.RenderStepped:Connect(function()
     if followActive and targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
         local myChar = LocalPlayer.Character
@@ -353,25 +353,23 @@ RunService.RenderStepped:Connect(function()
             local targetHRP = targetPlayer.Character.HumanoidRootPart
             local myHRP = myChar.HumanoidRootPart
             
-            -- Tính vị trí nấp dưới chân / sau lưng đối phương
+            -- Tính vị trí nấp phía dưới và phía sau mục tiêu
             local targetCF = targetHRP.CFrame
             local posBehind = targetCF.Position - (targetCF.LookVector * behindDist)
             local finalPos = posBehind - Vector3.new(0, underDist, 0)
             
-            myHRP.CFrame = CFrame.lookAt(finalPos, targetHRP.Position) * CFrame.Angles(math.rad(-90), 0, 0)
+            -- Xoay nhân vật ngẩng mặt hướng thẳng từ vị trí của mình tới Target
+            myHRP.CFrame = CFrame.lookAt(finalPos, targetHRP.Position)
             
-            -- ĐẶT CAMERA Ở GÓC NHÌN THỨ 3 TỪ SAU LƯNG CỦA ĐỐI PHƯƠNG (TARGET)
+            -- Đặt Camera ở góc nhìn thứ 3 phía sau lưng Target
             local camera = Workspace.CurrentCamera
             camera.CameraType = Enum.CameraType.Scriptable
             
-            -- Đặt camera lùi về sau 8 studs và nhếch lên trên 3 studs tính từ lưng Target
             local camPos = targetCF.Position - (targetCF.LookVector * 8) + Vector3.new(0, 3, 0)
-            
-            -- Nhìn thẳng về phía trước theo hướng đối phương (hoặc quay về phía bản thân)
             camera.CFrame = CFrame.lookAt(camPos, targetCF.Position + (targetCF.LookVector * 10))
         end
     else
-        -- Trả Camera về góc nhìn người chơi bình thường khi tắt Target
+        -- Trả Camera về bình thường khi tắt Target
         local camera = Workspace.CurrentCamera
         if camera.CameraType == Enum.CameraType.Scriptable then
             camera.CameraType = Enum.CameraType.Custom
