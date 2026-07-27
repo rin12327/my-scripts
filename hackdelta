@@ -245,7 +245,7 @@ end)
 
 -- 5. NOCLIP TOGGLE
 local NoclipBtn = Instance.new("TextButton")
-NoclipBtn.Text = "👻 Noclip (Char + Cam): ON"
+NoclipBtn.Text = "👻 Noclip (Char): ON"
 NoclipBtn.Size = UDim2.new(1, -20, 0, 30)
 NoclipBtn.Position = UDim2.new(0, 10, 0, 230)
 NoclipBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 80)
@@ -257,13 +257,13 @@ Instance.new("UICorner", NoclipBtn).CornerRadius = UDim.new(0, 6)
 
 NoclipBtn.MouseButton1Click:Connect(function()
     noclipActive = not noclipActive
-    NoclipBtn.Text = "👻 Noclip (Char + Cam): " .. (noclipActive and "ON" or "OFF")
+    NoclipBtn.Text = "👻 Noclip (Char): " .. (noclipActive and "ON" or "OFF")
     NoclipBtn.BackgroundColor3 = noclipActive and Color3.fromRGB(0, 180, 80) or Color3.fromRGB(180, 50, 50)
 end)
 
--- 6. SIÊU ANTILAG (XÓA MAP + SKY + VFX)
+-- 6. ANTILAG MỚI (AN TOÀN: CHỈ XÓA ĐỒ HỌA NẶNG, KHÔNG XÓA MAP / NV / GUI)
 local AntiLagBtn = Instance.new("TextButton")
-AntiLagBtn.Text = "💥 Xóa Map / VFX / Sky (Siêu Mượt)"
+AntiLagBtn.Text = "💥 AntiLag (Giữ Map, Tối Ưu Mượt)"
 AntiLagBtn.Size = UDim2.new(1, -20, 0, 30)
 AntiLagBtn.Position = UDim2.new(0, 10, 0, 270)
 AntiLagBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
@@ -277,37 +277,24 @@ AntiLagBtn.MouseButton1Click:Connect(function()
     pcall(function()
         Lighting.GlobalShadows = false
         Lighting.FogEnd = 9e9
-        Lighting.Brightness = 1
-        for _, sky in ipairs(Lighting:GetChildren()) do
-            if sky:IsA("Sky") or sky:IsA("Atmosphere") or sky:IsA("PostEffect") then
-                sky:Destroy()
+        
+        -- Dọn hiệu ứng ánh sáng
+        for _, obj in ipairs(Lighting:GetChildren()) do
+            if obj:IsA("PostEffect") or obj:IsA("BloomEffect") or obj:IsA("BlurEffect") or obj:IsA("SunRaysEffect") then
+                obj.Enabled = false
             end
         end
 
-        local spawnPlatform = Instance.new("Part")
-        spawnPlatform.Name = "RonaldoPlatform"
-        spawnPlatform.Size = Vector3.new(3000, 10, 3000)
-        spawnPlatform.Position = Vector3.new(0, -5, 0)
-        spawnPlatform.Anchored = true
-        spawnPlatform.Material = Enum.Material.Slate
-        spawnPlatform.Color = Color3.fromRGB(70, 70, 70)
-        spawnPlatform.Parent = Workspace
-
-        for _, obj in ipairs(Workspace:GetChildren()) do
-            if obj ~= spawnPlatform and not Players:GetPlayerFromCharacter(obj) then
-                if obj:IsA("BasePart") or obj:IsA("Model") or obj:IsA("Folder") then
-                    pcall(function() obj:Destroy() end)
-                end
-            end
-        end
-
+        -- Dọn hạt, kết cấu nặng trên Map mà không xóa Part hay Map
         for _, v in ipairs(Workspace:GetDescendants()) do
-            if v:IsA("Decal") or v:IsA("Texture") or v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Fire") or v:IsA("Smoke") or v:IsA("Sparkles") then
+            if v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Smoke") or v:IsA("Fire") or v:IsA("Sparkles") then
+                v.Enabled = false
+            elseif v:IsA("Decal") or v:IsA("Texture") then
                 v:Destroy()
             end
         end
     end)
-    AntiLagBtn.Text = "💥 Đã xóa sạch Map & Sky!"
+    AntiLagBtn.Text = "💥 Đã tối ưu AntiLag!"
     AntiLagBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 80)
 end)
 
@@ -345,7 +332,7 @@ RunService.PreRender:Connect(function()
     end
 end)
 
--- Teleport & CHỈNH MẶT NHÂN VẬT HƯỚNG THẲNG TỪ DƯỚI LÊN MỤC TIÊU
+-- Teleport & CHỈNH THÂN HƯỚNG TRỰC TIẾP VÀO TARGET (CAMERA TỰ DO)
 RunService.RenderStepped:Connect(function()
     if followActive and targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
         local myChar = LocalPlayer.Character
@@ -353,26 +340,19 @@ RunService.RenderStepped:Connect(function()
             local targetHRP = targetPlayer.Character.HumanoidRootPart
             local myHRP = myChar.HumanoidRootPart
             
-            -- Tính vị trí nấp phía dưới và phía sau mục tiêu
+            -- Tính vị trí phía dưới và đằng sau target
             local targetCF = targetHRP.CFrame
             local posBehind = targetCF.Position - (targetCF.LookVector * behindDist)
             local finalPos = posBehind - Vector3.new(0, underDist, 0)
             
-            -- Xoay nhân vật ngẩng mặt hướng thẳng từ vị trí của mình tới Target
+            -- Thân xoay hướng thẳng từ vị trí dưới đất vào người chơi target
             myHRP.CFrame = CFrame.lookAt(finalPos, targetHRP.Position)
             
-            -- Đặt Camera ở góc nhìn thứ 3 phía sau lưng Target
+            -- Đảm bảo Camera hoàn toàn tự do xoay bằng chuột
             local camera = Workspace.CurrentCamera
-            camera.CameraType = Enum.CameraType.Scriptable
-            
-            local camPos = targetCF.Position - (targetCF.LookVector * 8) + Vector3.new(0, 3, 0)
-            camera.CFrame = CFrame.lookAt(camPos, targetCF.Position + (targetCF.LookVector * 10))
-        end
-    else
-        -- Trả Camera về bình thường khi tắt Target
-        local camera = Workspace.CurrentCamera
-        if camera.CameraType == Enum.CameraType.Scriptable then
-            camera.CameraType = Enum.CameraType.Custom
+            if camera.CameraType ~= Enum.CameraType.Custom then
+                camera.CameraType = Enum.CameraType.Custom
+            end
         end
     end
 end)
