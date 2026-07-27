@@ -55,13 +55,14 @@ Title.Font = Enum.Font.GothamBold
 Title.TextSize = 14
 Title.Parent = Frame
 
--- Biến lưu thông số
+-- Biến lưu thông số mặc định theo yêu cầu
 local targetPlayer = nil
-local underDist = 5
-local behindDist = 2
+local underDist = 4
+local behindDist = 0
 local autoAttack = false
 local noclipActive = true
 local followActive = false
+local autoDestroyParts = false
 
 -- 1. DROPDOWN CHỌN TARGET
 local TargetDropdownBtn = Instance.new("TextButton")
@@ -139,7 +140,7 @@ end)
 
 -- 2. DROPDOWN CHỌN KHOẢNG CÁCH UNDER (1-10)
 local UnderBtn = Instance.new("TextButton")
-UnderBtn.Text = "📐 Under (Dưới): 5 Studs"
+UnderBtn.Text = "📐 Under (Dưới): 4 Studs"
 UnderBtn.Size = UDim2.new(1, -20, 0, 30)
 UnderBtn.Position = UDim2.new(0, 10, 0, 105)
 UnderBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
@@ -181,9 +182,9 @@ UnderBtn.MouseButton1Click:Connect(function()
     UnderScroll.Visible = not UnderScroll.Visible
 end)
 
--- 3. DROPDOWN CHỌN KHOẢNG CÁCH BEHIND (1-10)
+-- 3. DROPDOWN CHỌN KHOẢNG CÁCH BEHIND (0-10)
 local BehindBtn = Instance.new("TextButton")
-BehindBtn.Text = "🔙 Behind (Sau): 2 Studs"
+BehindBtn.Text = "🔙 Behind (Sau): 0 Studs"
 BehindBtn.Size = UDim2.new(1, -20, 0, 30)
 BehindBtn.Position = UDim2.new(0, 10, 0, 145)
 BehindBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
@@ -199,12 +200,12 @@ BehindScroll.Position = UDim2.new(0, 10, 0, 180)
 BehindScroll.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
 BehindScroll.Visible = false
 BehindScroll.ZIndex = 10
-BehindScroll.CanvasSize = UDim2.new(0, 0, 0, 250)
+BehindScroll.CanvasSize = UDim2.new(0, 0, 0, 275)
 BehindScroll.Parent = Frame
 local UIList3 = Instance.new("UIListLayout", BehindScroll)
 UIList3.SortOrder = Enum.SortOrder.LayoutOrder
 
-for i = 1, 10 do
+for i = 0, 10 do
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(1, 0, 0, 25)
     btn.Text = i .. " Studs"
@@ -261,9 +262,9 @@ NoclipBtn.MouseButton1Click:Connect(function()
     NoclipBtn.BackgroundColor3 = noclipActive and Color3.fromRGB(0, 180, 80) or Color3.fromRGB(180, 50, 50)
 end)
 
--- 6. ANTILAG SMOOTH (XÓA VFX/TEXTURE, GIỮ NGUYÊN MAP & GIÚP MÁY SIÊU MƯỢT)
+-- 6. ANTILAG XÓA KHỐI SPAWN VĂNG RA + VFX
 local AntiLagBtn = Instance.new("TextButton")
-AntiLagBtn.Text = "💥 Smooth AntiLag (Mượt Mobile)"
+AntiLagBtn.Text = "💥 AntiLag + Xóa Khối Văng Chiêu"
 AntiLagBtn.Size = UDim2.new(1, -20, 0, 30)
 AntiLagBtn.Position = UDim2.new(0, 10, 0, 270)
 AntiLagBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
@@ -273,7 +274,25 @@ AntiLagBtn.TextSize = 12
 AntiLagBtn.Parent = Frame
 Instance.new("UICorner", AntiLagBtn).CornerRadius = UDim.new(0, 6)
 
+local function cleanObject(obj)
+    if not obj then return end
+    pcall(function()
+        if obj:IsA("BasePart") and not Players:GetPlayerFromCharacter(obj.Parent) then
+            -- Mảnh vỡ/đất đá văng ra từ chiêu thức sẽ bị dọn ngay
+            if obj.Name:lower():find("debris") or obj.Name:lower():find("rock") or obj.Name:lower():find("part") or obj.Name:lower():find("fx") then
+                obj:Destroy()
+            else
+                obj.Material = Enum.Material.SmoothPlastic
+                obj.Reflectance = 0
+            end
+        elseif obj:IsA("Decal") or obj:IsA("Texture") or obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Smoke") or obj:IsA("Fire") or obj:IsA("Sparkles") then
+            obj:Destroy()
+        end
+    end)
+end
+
 AntiLagBtn.MouseButton1Click:Connect(function()
+    autoDestroyParts = true
     pcall(function()
         Lighting.GlobalShadows = false
         Lighting.FogEnd = 9e9
@@ -285,18 +304,28 @@ AntiLagBtn.MouseButton1Click:Connect(function()
         end
 
         for _, v in ipairs(Workspace:GetDescendants()) do
-            if v:IsA("BasePart") then
-                v.Material = Enum.Material.SmoothPlastic
-                v.Reflectance = 0
-            elseif v:IsA("Decal") or v:IsA("Texture") then
-                v:Destroy()
-            elseif v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Smoke") or v:IsA("Fire") or v:IsA("Sparkles") then
-                v.Enabled = false
-            end
+            cleanObject(v)
         end
     end)
-    AntiLagBtn.Text = "💥 Đã hóa Smooth & Xóa VFX!"
+    AntiLagBtn.Text = "💥 Auto Xóa Khối Văng: ON!"
     AntiLagBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 80)
+end)
+
+-- Tự động lắng nghe khối mới văng ra Server để xóa sạch
+Workspace.ChildAdded:Connect(function(child)
+    if autoDestroyParts then
+        task.wait(0.01)
+        if not Players:GetPlayerFromCharacter(child) then
+            pcall(function()
+                if child:IsA("BasePart") or child:IsA("Model") or child:IsA("Folder") then
+                    cleanObject(child)
+                    for _, sub in ipairs(child:GetDescendants()) do
+                        cleanObject(sub)
+                    end
+                end
+            end)
+        end
+    end
 end)
 
 -- 7. CLOSE BUTTON
@@ -333,7 +362,7 @@ RunService.PreRender:Connect(function()
     end
 end)
 
--- TELEPORT CHUẨN ĐỘ SÂU + CAMERA GÓC NHÌN T3 TARGET XOAY TỰ DO
+-- TELEPORT CỐ ĐỊNH 4 STUDS UNDER + CAMERA LUÔN KHÓA NHÌN VÀO TARGET
 RunService.RenderStepped:Connect(function()
     if followActive and targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
         local myChar = LocalPlayer.Character
@@ -341,65 +370,53 @@ RunService.RenderStepped:Connect(function()
             local targetHRP = targetPlayer.Character.HumanoidRootPart
             local myHRP = myChar.HumanoidRootPart
             
-            -- Fix độ sâu chuẩn (không bị thấp hơn mức thiết lập)
+            -- Vị trí dưới lòng đất: Đặt đúng Under 4 Studs và Behind 0 Studs
             local targetCF = targetHRP.CFrame
             local posBehind = targetCF.Position - (targetCF.LookVector * behindDist)
             local finalPos = posBehind - Vector3.new(0, underDist, 0)
             
-            -- Nhân vật luôn chĩa ngẩng thẳng mặt vào Target
+            -- Thân nhân vật chĩa thẳng mặt từ dưới lên Target
             myHRP.CFrame = CFrame.lookAt(finalPos, targetHRP.Position)
             
-            -- Đặt Subject của Camera vào Target để tạo góc nhìn thứ 3 bám theo Target nhưng XOAY CHUỘT/TAY TỰ DO
+            -- CỐ ĐỊNH CAMERA NHÌN THẲNG VÀO NGƯỜI CHƠI BỊ TARGET
             local camera = Workspace.CurrentCamera
-            camera.CameraType = Enum.CameraType.Custom
-            camera.CameraSubject = targetPlayer.Character:FindFirstChildOfClass("Humanoid") or targetHRP
+            camera.CameraType = Enum.CameraType.Scriptable
+            
+            -- Camera lùi về sau lưng Target 7 studs và hơi nhếch lên 2 studs
+            local camPos = targetCF.Position - (targetCF.LookVector * 7) + Vector3.new(0, 2, 0)
+            camera.CFrame = CFrame.lookAt(camPos, targetHRP.Position)
         end
     else
-        -- Trả Camera về nhân vật của mình khi tắt
+        -- Trả Camera về bình thường khi ngắt Target
         local camera = Workspace.CurrentCamera
-        local myChar = LocalPlayer.Character
-        if myChar and myChar:FindFirstChildOfClass("Humanoid") then
-            if camera.CameraSubject ~= myChar:FindFirstChildOfClass("Humanoid") then
-                camera.CameraSubject = myChar:FindFirstChildOfClass("Humanoid")
-                camera.CameraType = Enum.CameraType.Custom
-            end
+        if camera.CameraType == Enum.CameraType.Scriptable then
+            camera.CameraType = Enum.CameraType.Custom
         end
     end
 end)
 
--- AUTO ATTACK M1 CỦA TSB (TƯƠNG THÍCH HOÀN HẢO MOBILE & PC)
+-- AUTO ATTACK M1 CHO TSB (MƯỢT CẢ MOBILE & PC)
 task.spawn(function()
     while task.wait(0.08) do
         if autoAttack and targetPlayer and followActive then
             pcall(function()
                 local char = LocalPlayer.Character
                 if char then
-                    -- Trigger Remote dành cho TSB
                     local comm = char:FindFirstChild("Communicate") or ReplicatedStorage:FindFirstChild("Communicate")
                     if comm then
                         comm:FireServer({Goal = "LeftClick"})
                     end
                 end
                 
-                -- Giả lập bấm màn hình/chuột mượt mà cho Mobile
                 VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 0)
                 task.wait(0.01)
                 VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 0)
-                
-                -- Tap gián tiếp nút đánh tay màn hình Mobile nếu có
-                if LocalPlayer.PlayerGui:FindFirstChild("TouchGui") then
-                    local touchControl = LocalPlayer.PlayerGui.TouchGui:FindFirstChild("TouchControlFrame")
-                    if touchControl and touchControl:FindFirstChild("JumpButton") then
-                        VirtualInputManager:SendTouchEvent(1, Enum.UserInputState.Begin, 0, 0)
-                        VirtualInputManager:SendTouchEvent(1, Enum.UserInputState.End, 0, 0)
-                    end
-                end
             end)
         end
     end
 end)
 
--- AUTO SKILL CHUẨN TSB (1-4)
+-- AUTO SKILL (1-4)
 task.spawn(function()
     local skillKeys = {Enum.KeyCode.One, Enum.KeyCode.Two, Enum.KeyCode.Three, Enum.KeyCode.Four}
     local skillIndex = 1
