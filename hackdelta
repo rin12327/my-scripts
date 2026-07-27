@@ -1,6 +1,9 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local VirtualInputManager = game:GetService("VirtualInputManager")
+local Lighting = game:GetService("Lighting")
+
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
@@ -15,9 +18,21 @@ ScreenGui.Name = "TSB_Follow_Gui"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = PlayerGui
 
+-- NÚT ẨN / HIỆN GUI
+local ToggleGuiBtn = Instance.new("TextButton")
+ToggleGuiBtn.Size = UDim2.new(0, 80, 0, 30)
+ToggleGuiBtn.Position = UDim2.new(0, 10, 0.4, 0)
+ToggleGuiBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+ToggleGuiBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleGuiBtn.Text = "👁️ Menu"
+ToggleGuiBtn.Font = Enum.Font.GothamBold
+ToggleGuiBtn.TextSize = 12
+ToggleGuiBtn.Parent = ScreenGui
+Instance.new("UICorner", ToggleGuiBtn).CornerRadius = UDim.new(0, 6)
+
 -- Main Frame
 local Frame = Instance.new("Frame")
-Frame.Size = UDim2.new(0, 260, 0, 360)
+Frame.Size = UDim2.new(0, 260, 0, 410)
 Frame.Position = UDim2.new(0.5, -130, 0.15, 0)
 Frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 Frame.BorderSizePixel = 0
@@ -25,6 +40,10 @@ Frame.Active = true
 Frame.Draggable = true
 Frame.Parent = ScreenGui
 Instance.new("UICorner", Frame).CornerRadius = UDim.new(0, 10)
+
+ToggleGuiBtn.MouseButton1Click:Connect(function()
+    Frame.Visible = not Frame.Visible
+end)
 
 local Title = Instance.new("TextLabel")
 Title.Text = "⚡ TSB Follow & Auto Attack"
@@ -62,8 +81,8 @@ TargetScroll.Visible = false
 TargetScroll.ZIndex = 10
 TargetScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
 TargetScroll.Parent = Frame
-local UIList = Instance.new("UIListLayout", TargetScroll)
-UIList.SortOrder = Enum.SortOrder.LayoutOrder
+local UIList1 = Instance.new("UIListLayout", TargetScroll)
+UIList1.SortOrder = Enum.SortOrder.LayoutOrder
 
 local function updateTargetDropdown()
     for _, child in ipairs(TargetScroll:GetChildren()) do
@@ -98,7 +117,7 @@ TargetDropdownBtn.MouseButton1Click:Connect(function()
     TargetScroll.Visible = not TargetScroll.Visible
 end)
 
--- 2. DROPDOWN CHỌN KHOẢNG CÁCH UNDER
+-- 2. DROPDOWN CHỌN KHOẢNG CÁCH UNDER (XỔ RA TỪ 1 ĐẾN 10)
 local UnderBtn = Instance.new("TextButton")
 UnderBtn.Text = "📐 Under (Dưới): 5 Studs"
 UnderBtn.Size = UDim2.new(1, -20, 0, 30)
@@ -110,15 +129,39 @@ UnderBtn.TextSize = 12
 UnderBtn.Parent = Frame
 Instance.new("UICorner", UnderBtn).CornerRadius = UDim.new(0, 6)
 
+local UnderScroll = Instance.new("ScrollingFrame")
+UnderScroll.Size = UDim2.new(1, -20, 0, 100)
+UnderScroll.Position = UDim2.new(0, 10, 0, 110)
+UnderScroll.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+UnderScroll.Visible = false
+UnderScroll.ZIndex = 10
+UnderScroll.CanvasSize = UDim2.new(0, 0, 0, 250)
+UnderScroll.Parent = Frame
+local UIList2 = Instance.new("UIListLayout", UnderScroll)
+UIList2.SortOrder = Enum.SortOrder.LayoutOrder
+
+for i = 1, 10 do
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, 0, 0, 25)
+    btn.Text = i .. " Studs"
+    btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.Font = Enum.Font.Gotham
+    btn.TextSize = 11
+    btn.ZIndex = 11
+    btn.Parent = UnderScroll
+    btn.MouseButton1Click:Connect(function()
+        underDist = i
+        UnderBtn.Text = "📐 Under (Dưới): " .. underDist .. " Studs"
+        UnderScroll.Visible = false
+    end)
+end
+
 UnderBtn.MouseButton1Click:Connect(function()
-    if underDist == 3 then underDist = 5
-    elseif underDist == 5 then underDist = 8
-    elseif underDist == 8 then underDist = 10
-    else underDist = 3 end
-    UnderBtn.Text = "📐 Under (Dưới): " .. underDist .. " Studs"
+    UnderScroll.Visible = not UnderScroll.Visible
 end)
 
--- 3. DROPDOWN CHỌN KHOẢNG CÁCH BEHIND
+-- 3. DROPDOWN CHỌN KHOẢNG CÁCH BEHIND (XỔ RA TỪ 1 ĐẾN 10)
 local BehindBtn = Instance.new("TextButton")
 BehindBtn.Text = "🔙 Behind (Sau): 2 Studs"
 BehindBtn.Size = UDim2.new(1, -20, 0, 30)
@@ -130,11 +173,36 @@ BehindBtn.TextSize = 12
 BehindBtn.Parent = Frame
 Instance.new("UICorner", BehindBtn).CornerRadius = UDim.new(0, 6)
 
+local BehindScroll = Instance.new("ScrollingFrame")
+BehindScroll.Size = UDim2.new(1, -20, 0, 100)
+BehindScroll.Position = UDim2.new(0, 10, 0, 150)
+BehindScroll.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+BehindScroll.Visible = false
+BehindScroll.ZIndex = 10
+BehindScroll.CanvasSize = UDim2.new(0, 0, 0, 250)
+BehindScroll.Parent = Frame
+local UIList3 = Instance.new("UIListLayout", BehindScroll)
+UIList3.SortOrder = Enum.SortOrder.LayoutOrder
+
+for i = 1, 10 do
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, 0, 0, 25)
+    btn.Text = i .. " Studs"
+    btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.Font = Enum.Font.Gotham
+    btn.TextSize = 11
+    btn.ZIndex = 11
+    btn.Parent = BehindScroll
+    btn.MouseButton1Click:Connect(function()
+        behindDist = i
+        BehindBtn.Text = "🔙 Behind (Sau): " .. behindDist .. " Studs"
+        BehindScroll.Visible = false
+    end)
+end
+
 BehindBtn.MouseButton1Click:Connect(function()
-    if behindDist == 0 then behindDist = 2
-    elseif behindDist == 2 then behindDist = 4
-    else behindDist = 0 end
-    BehindBtn.Text = "🔙 Behind (Sau): " .. behindDist .. " Studs"
+    BehindScroll.Visible = not BehindScroll.Visible
 end)
 
 -- 4. AUTO ATTACK TOGGLE
@@ -173,11 +241,41 @@ NoclipBtn.MouseButton1Click:Connect(function()
     NoclipBtn.BackgroundColor3 = noclipActive and Color3.fromRGB(0, 180, 80) or Color3.fromRGB(180, 50, 50)
 end)
 
--- 6. CLOSE BUTTON
+-- 6. ANTILAG TOGGLE
+local AntiLagBtn = Instance.new("TextButton")
+AntiLagBtn.Text = "🚀 Anti-Lag / Super FPS"
+AntiLagBtn.Size = UDim2.new(1, -20, 0, 30)
+AntiLagBtn.Position = UDim2.new(0, 10, 0, 240)
+AntiLagBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+AntiLagBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+AntiLagBtn.Font = Enum.Font.Gotham
+AntiLagBtn.TextSize = 12
+AntiLagBtn.Parent = Frame
+Instance.new("UICorner", AntiLagBtn).CornerRadius = UDim.new(0, 6)
+
+AntiLagBtn.MouseButton1Click:Connect(function()
+    pcall(function()
+        Lighting.GlobalShadows = false
+        Lighting.FogEnd = 9e9
+        for _, v in ipairs(workspace:GetDescendants()) do
+            if v:IsA("BasePart") then
+                v.Material = Enum.Material.SmoothPlastic
+            elseif v:IsA("Decal") or v:IsA("Texture") then
+                v:Destroy()
+            elseif v:IsA("ParticleEmitter") or v:IsA("Trail") then
+                v.Enabled = false
+            end
+        end
+    end)
+    AntiLagBtn.Text = "🚀 Anti-Lag: ĐÃ BẬT"
+    AntiLagBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 80)
+end)
+
+-- 7. CLOSE BUTTON
 local CloseBtn = Instance.new("TextButton")
 CloseBtn.Text = "❌ Tắt GUI"
 CloseBtn.Size = UDim2.new(1, -20, 0, 30)
-CloseBtn.Position = UDim2.new(0, 10, 0, 310)
+CloseBtn.Position = UDim2.new(0, 10, 0, 360)
 CloseBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
 CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 CloseBtn.Font = Enum.Font.Gotham
@@ -190,7 +288,7 @@ CloseBtn.MouseButton1Click:Connect(function()
 end)
 
 ---------------------------------------------------------
--- LOGIC HỆ THỐNG (NO LAG / REAL AUTO ATTACK TSB)
+-- LOGIC HỆ THỐNG
 ---------------------------------------------------------
 
 -- Noclip triệt để không bị đẩy
@@ -212,24 +310,21 @@ RunService.RenderStepped:Connect(function()
             local targetHRP = targetPlayer.Character.HumanoidRootPart
             local myHRP = myChar.HumanoidRootPart
             
-            -- Tính CFrame nằm dưới và sau lưng
             local targetCF = targetHRP.CFrame
             local posBehind = targetCF.Position - (targetCF.LookVector * behindDist)
             local finalPos = posBehind - Vector3.new(0, underDist, 0)
             
-            -- Hướng mặt lên mục tiêu
             myHRP.CFrame = CFrame.lookAt(finalPos, targetHRP.Position) * CFrame.Angles(math.rad(-90), 0, 0)
         end
     end
 end)
 
--- Auto Attack / Spam Skill cho TSB chuẩn xác
+-- AUTO ATTACK & AUTO SKILL CHUẨN CHO TSB
 task.spawn(function()
-    while true do
-        task.wait(0.3) -- Nhịp kiểm tra cực nhanh
+    while task.wait(0.1) do
         if autoAttack and targetPlayer then
-            -- 1. Đánh thường M1 TSB
             pcall(function()
+                -- Lệnh 1: Gửi Signal Remote cho TSB
                 local char = LocalPlayer.Character
                 if char then
                     local comm = char:FindFirstChild("Communicate") or ReplicatedStorage:FindFirstChild("Communicate")
@@ -237,26 +332,41 @@ task.spawn(function()
                         comm:FireServer({Goal = "LeftClick"})
                     end
                 end
+                
+                -- Lệnh 2: Giả lập Click Chuột Trái (Phòng ngừa trường hợp Anti-Cheat Remote)
+                VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 0)
+                task.wait(0.02)
+                VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 0)
             end)
         end
     end
 end)
 
 task.spawn(function()
-    local currentSkill = 1
-    while true do
-        task.wait(1.0) -- Spam chiêu 1s/chiêu
+    local skillKeys = {Enum.KeyCode.One, Enum.KeyCode.Two, Enum.KeyCode.Three, Enum.KeyCode.Four}
+    local skillIndex = 1
+    
+    while task.wait(0.4) do
         if autoAttack and targetPlayer then
             pcall(function()
+                local key = skillKeys[skillIndex]
+                
+                -- Lệnh 1: Gửi Signal KeyPress Remote
                 local char = LocalPlayer.Character
                 if char then
                     local comm = char:FindFirstChild("Communicate") or ReplicatedStorage:FindFirstChild("Communicate")
                     if comm then
-                        comm:FireServer({Goal = "KeyPress", Key = Enum.KeyCode["Key" .. currentSkill]})
+                        comm:FireServer({Goal = "KeyPress", Key = key})
                     end
                 end
+                
+                -- Lệnh 2: Giả lập phím bấm 1, 2, 3, 4
+                VirtualInputManager:SendKeyEvent(true, key, false, game)
+                task.wait(0.05)
+                VirtualInputManager:SendKeyEvent(false, key, false, game)
+                
+                skillIndex = (skillIndex % 4) + 1
             end)
-            currentSkill = (currentSkill % 4) + 1
         end
     end
 end)
