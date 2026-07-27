@@ -261,9 +261,9 @@ NoclipBtn.MouseButton1Click:Connect(function()
     NoclipBtn.BackgroundColor3 = noclipActive and Color3.fromRGB(0, 180, 80) or Color3.fromRGB(180, 50, 50)
 end)
 
--- 6. ANTILAG MỚI (AN TOÀN: CHỈ XÓA ĐỒ HỌA NẶNG, KHÔNG XÓA MAP / NV / GUI)
+-- 6. ANTILAG SMOOTH (XÓA VFX/TEXTURE, GIỮ NGUYÊN MAP & GIÚP MÁY SIÊU MƯỢT)
 local AntiLagBtn = Instance.new("TextButton")
-AntiLagBtn.Text = "💥 AntiLag (Giữ Map, Tối Ưu Mượt)"
+AntiLagBtn.Text = "💥 Smooth AntiLag (Mượt Mobile)"
 AntiLagBtn.Size = UDim2.new(1, -20, 0, 30)
 AntiLagBtn.Position = UDim2.new(0, 10, 0, 270)
 AntiLagBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
@@ -278,23 +278,24 @@ AntiLagBtn.MouseButton1Click:Connect(function()
         Lighting.GlobalShadows = false
         Lighting.FogEnd = 9e9
         
-        -- Dọn hiệu ứng ánh sáng
         for _, obj in ipairs(Lighting:GetChildren()) do
             if obj:IsA("PostEffect") or obj:IsA("BloomEffect") or obj:IsA("BlurEffect") or obj:IsA("SunRaysEffect") then
                 obj.Enabled = false
             end
         end
 
-        -- Dọn hạt, kết cấu nặng trên Map mà không xóa Part hay Map
         for _, v in ipairs(Workspace:GetDescendants()) do
-            if v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Smoke") or v:IsA("Fire") or v:IsA("Sparkles") then
-                v.Enabled = false
+            if v:IsA("BasePart") then
+                v.Material = Enum.Material.SmoothPlastic
+                v.Reflectance = 0
             elseif v:IsA("Decal") or v:IsA("Texture") then
                 v:Destroy()
+            elseif v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Smoke") or v:IsA("Fire") or v:IsA("Sparkles") then
+                v.Enabled = false
             end
         end
     end)
-    AntiLagBtn.Text = "💥 Đã tối ưu AntiLag!"
+    AntiLagBtn.Text = "💥 Đã hóa Smooth & Xóa VFX!"
     AntiLagBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 80)
 end)
 
@@ -332,7 +333,7 @@ RunService.PreRender:Connect(function()
     end
 end)
 
--- Teleport & CHỈNH THÂN HƯỚNG TRỰC TIẾP VÀO TARGET (CAMERA TỰ DO)
+-- TELEPORT CHUẨN ĐỘ SÂU + CAMERA GÓC NHÌN T3 TARGET XOAY TỰ DO
 RunService.RenderStepped:Connect(function()
     if followActive and targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
         local myChar = LocalPlayer.Character
@@ -340,53 +341,73 @@ RunService.RenderStepped:Connect(function()
             local targetHRP = targetPlayer.Character.HumanoidRootPart
             local myHRP = myChar.HumanoidRootPart
             
-            -- Tính vị trí phía dưới và đằng sau target
+            -- Fix độ sâu chuẩn (không bị thấp hơn mức thiết lập)
             local targetCF = targetHRP.CFrame
             local posBehind = targetCF.Position - (targetCF.LookVector * behindDist)
             local finalPos = posBehind - Vector3.new(0, underDist, 0)
             
-            -- Thân xoay hướng thẳng từ vị trí dưới đất vào người chơi target
+            -- Nhân vật luôn chĩa ngẩng thẳng mặt vào Target
             myHRP.CFrame = CFrame.lookAt(finalPos, targetHRP.Position)
             
-            -- Đảm bảo Camera hoàn toàn tự do xoay bằng chuột
+            -- Đặt Subject của Camera vào Target để tạo góc nhìn thứ 3 bám theo Target nhưng XOAY CHUỘT/TAY TỰ DO
             local camera = Workspace.CurrentCamera
-            if camera.CameraType ~= Enum.CameraType.Custom then
+            camera.CameraType = Enum.CameraType.Custom
+            camera.CameraSubject = targetPlayer.Character:FindFirstChildOfClass("Humanoid") or targetHRP
+        end
+    else
+        -- Trả Camera về nhân vật của mình khi tắt
+        local camera = Workspace.CurrentCamera
+        local myChar = LocalPlayer.Character
+        if myChar and myChar:FindFirstChildOfClass("Humanoid") then
+            if camera.CameraSubject ~= myChar:FindFirstChildOfClass("Humanoid") then
+                camera.CameraSubject = myChar:FindFirstChildOfClass("Humanoid")
                 camera.CameraType = Enum.CameraType.Custom
             end
         end
     end
 end)
 
--- AUTO ATTACK & AUTO SKILL CHUẨN CHO TSB
+-- AUTO ATTACK M1 CỦA TSB (TƯƠNG THÍCH HOÀN HẢO MOBILE & PC)
 task.spawn(function()
-    while task.wait(0.1) do
+    while task.wait(0.08) do
         if autoAttack and targetPlayer and followActive then
             pcall(function()
                 local char = LocalPlayer.Character
                 if char then
+                    -- Trigger Remote dành cho TSB
                     local comm = char:FindFirstChild("Communicate") or ReplicatedStorage:FindFirstChild("Communicate")
                     if comm then
                         comm:FireServer({Goal = "LeftClick"})
                     end
                 end
                 
+                -- Giả lập bấm màn hình/chuột mượt mà cho Mobile
                 VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 0)
-                task.wait(0.02)
+                task.wait(0.01)
                 VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 0)
+                
+                -- Tap gián tiếp nút đánh tay màn hình Mobile nếu có
+                if LocalPlayer.PlayerGui:FindFirstChild("TouchGui") then
+                    local touchControl = LocalPlayer.PlayerGui.TouchGui:FindFirstChild("TouchControlFrame")
+                    if touchControl and touchControl:FindFirstChild("JumpButton") then
+                        VirtualInputManager:SendTouchEvent(1, Enum.UserInputState.Begin, 0, 0)
+                        VirtualInputManager:SendTouchEvent(1, Enum.UserInputState.End, 0, 0)
+                    end
+                end
             end)
         end
     end
 end)
 
+-- AUTO SKILL CHUẨN TSB (1-4)
 task.spawn(function()
     local skillKeys = {Enum.KeyCode.One, Enum.KeyCode.Two, Enum.KeyCode.Three, Enum.KeyCode.Four}
     local skillIndex = 1
     
-    while task.wait(0.4) do
+    while task.wait(0.35) do
         if autoAttack and targetPlayer and followActive then
             pcall(function()
                 local key = skillKeys[skillIndex]
-                
                 local char = LocalPlayer.Character
                 if char then
                     local comm = char:FindFirstChild("Communicate") or ReplicatedStorage:FindFirstChild("Communicate")
@@ -396,7 +417,7 @@ task.spawn(function()
                 end
                 
                 VirtualInputManager:SendKeyEvent(true, key, false, game)
-                task.wait(0.05)
+                task.wait(0.03)
                 VirtualInputManager:SendKeyEvent(false, key, false, game)
                 
                 skillIndex = (skillIndex % 4) + 1
