@@ -1,12 +1,12 @@
+-- Script TSB Follow & Auto Attack cho Mobile / PC
+-- Tối ưu hóa bởi AI
+
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local VirtualUser = game:GetService("VirtualUser")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
-if PlayerGui:FindFirstChild("FollowGui") then
-    PlayerGui.FollowGui:Destroy()
 -- Xóa GUI cũ nếu tồn tại
 if PlayerGui:FindFirstChild("TSB_Follow_Gui") then
     PlayerGui.TSB_Follow_Gui:Destroy()
@@ -14,34 +14,27 @@ end
 
 -- Khởi tạo ScreenGui
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "FollowGui"
 ScreenGui.Name = "TSB_Follow_Gui"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = PlayerGui
 
 -- Main Frame
 local Frame = Instance.new("Frame")
-Frame.Size = UDim2.new(0, 280, 0, 380)
-Frame.Position = UDim2.new(0.5, -140, 0.15, 0)
-Frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 Frame.Size = UDim2.new(0, 260, 0, 360)
 Frame.Position = UDim2.new(0.5, -130, 0.15, 0)
 Frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 Frame.BorderSizePixel = 0
 Frame.Active = true
-Frame.Draggable = true
 Frame.Parent = ScreenGui
-Instance.new("UICorner", Frame).CornerRadius = UDim.new(0, 12)
 Instance.new("UICorner", Frame).CornerRadius = UDim.new(0, 10)
 
+-- Title
 local Title = Instance.new("TextLabel")
-Title.Text = "👣 Follow & Auto Mobile"
 Title.Text = "⚡ TSB Follow & Auto Attack"
-Title.Size = UDim2.new(1, 0, 0, 30)
+Title.Size = UDim2.new(1, 0, 0, 35)
 Title.BackgroundTransparency = 1
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
-Title.TextSize = 16
 Title.TextSize = 14
 Title.Parent = Frame
 
@@ -65,18 +58,20 @@ game:GetService("UserInputService").InputChanged:Connect(function(input)
         Frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
     end
 end)
--- Biến lưu thông số
+
+-- Biến điều khiển
 local targetPlayer = nil
 local underDist = 5
 local behindDist = 2
 local autoAttack = false
 local noclipActive = true
+local isFollowing = false
 
 -- 1. DROPDOWN CHỌN TARGET
 local TargetDropdownBtn = Instance.new("TextButton")
-TargetDropdownBtn.Text = "🎯 Chọn Target: [Chưa chọn]"
+TargetDropdownBtn.Text = "🎯 Target: [Chưa chọn]"
 TargetDropdownBtn.Size = UDim2.new(1, -20, 0, 30)
-TargetDropdownBtn.Position = UDim2.new(0, 10, 0, 35)
+TargetDropdownBtn.Position = UDim2.new(0, 10, 0, 40)
 TargetDropdownBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
 TargetDropdownBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 TargetDropdownBtn.Font = Enum.Font.Gotham
@@ -84,37 +79,16 @@ TargetDropdownBtn.TextSize = 12
 TargetDropdownBtn.Parent = Frame
 Instance.new("UICorner", TargetDropdownBtn).CornerRadius = UDim.new(0, 6)
 
-local TextBox = Instance.new("TextBox")
-TextBox.PlaceholderText = "Nhập tên / DisplayName..."
-TextBox.Size = UDim2.new(1, -20, 0, 30)
-TextBox.Position = UDim2.new(0, 10, 0, 40)
-TextBox.Text = ""
-TextBox.TextSize = 14
-TextBox.TextColor3 = Color3.fromRGB(0,0,0)
-TextBox.BackgroundColor3 = Color3.fromRGB(255,255,255)
-TextBox.Parent = Frame
-Instance.new("UICorner", TextBox).CornerRadius = UDim.new(0, 8)
 local TargetScroll = Instance.new("ScrollingFrame")
 TargetScroll.Size = UDim2.new(1, -20, 0, 100)
-TargetScroll.Position = UDim2.new(0, 10, 0, 70)
+TargetScroll.Position = UDim2.new(0, 10, 0, 75)
 TargetScroll.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
 TargetScroll.Visible = false
 TargetScroll.ZIndex = 10
-TargetScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
 TargetScroll.Parent = Frame
 local UIList = Instance.new("UIListLayout", TargetScroll)
 UIList.SortOrder = Enum.SortOrder.LayoutOrder
 
-local BehindBox = Instance.new("TextBox")
-BehindBox.PlaceholderText = "Behind (2)"
-BehindBox.Size = UDim2.new(0.5, -15, 0, 30)
-BehindBox.Position = UDim2.new(0, 10, 0, 80)
-BehindBox.Text = "2"
-BehindBox.TextSize = 14
-BehindBox.TextColor3 = Color3.fromRGB(0,0,0)
-BehindBox.BackgroundColor3 = Color3.fromRGB(255,255,255)
-BehindBox.Parent = Frame
-Instance.new("UICorner", BehindBox).CornerRadius = UDim.new(0, 8)
 local function updateTargetDropdown()
     for _, child in ipairs(TargetScroll:GetChildren()) do
         if child:IsA("TextButton") then child:Destroy() end
@@ -143,96 +117,35 @@ local function updateTargetDropdown()
     TargetScroll.CanvasSize = UDim2.new(0, 0, 0, count * 25)
 end
 
-local UnderBox = Instance.new("TextBox")
-UnderBox.PlaceholderText = "Under (5)"
-UnderBox.Size = UDim2.new(0.5, -15, 0, 30)
-UnderBox.Position = UDim2.new(0.5, 5, 0, 80)
-UnderBox.Text = "5"
-UnderBox.TextSize = 14
-UnderBox.TextColor3 = Color3.fromRGB(0,0,0)
-UnderBox.BackgroundColor3 = Color3.fromRGB(255,255,255)
-UnderBox.Parent = Frame
-Instance.new("UICorner", UnderBox).CornerRadius = UDim.new(0, 8)
 TargetDropdownBtn.MouseButton1Click:Connect(function()
     updateTargetDropdown()
     TargetScroll.Visible = not TargetScroll.Visible
 end)
 
--- 2. DROPDOWN CHỌN KHOẢNG CÁCH UNDER
+-- 2. TÙY CHỈNH KHOẢNG CÁCH
 local UnderBtn = Instance.new("TextButton")
-UnderBtn.Text = "Under: ON"
-UnderBtn.Size = UDim2.new(0.5, -15, 0, 30)
-UnderBtn.Position = UDim2.new(0, 10, 0, 120)
-UnderBtn.TextColor3 = Color3.fromRGB(255,255,255)
-UnderBtn.Font = Enum.Font.GothamBold
-UnderBtn.TextSize = 14
-UnderBtn.BackgroundColor3 = Color3.fromRGB(0,200,100)
-UnderBtn.Text = "📐 Under (Dưới): 5 Studs"
+UnderBtn.Text = "📐 Dưới (Under): " .. underDist .. " Studs"
 UnderBtn.Size = UDim2.new(1, -20, 0, 30)
-UnderBtn.Position = UDim2.new(0, 10, 0, 75)
+UnderBtn.Position = UDim2.new(0, 10, 0, 80)
 UnderBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
 UnderBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 UnderBtn.Font = Enum.Font.Gotham
 UnderBtn.TextSize = 12
 UnderBtn.Parent = Frame
-Instance.new("UICorner", UnderBtn).CornerRadius = UDim.new(0, 8)
-
-local NoclipBtn = Instance.new("TextButton")
-NoclipBtn.Text = "Noclip: ON"
-NoclipBtn.Size = UDim2.new(0.5, -15, 0, 30)
-NoclipBtn.Position = UDim2.new(0.5, 5, 0, 120)
-NoclipBtn.TextColor3 = Color3.fromRGB(255,255,255)
-NoclipBtn.Font = Enum.Font.GothamBold
-NoclipBtn.TextSize = 14
-NoclipBtn.BackgroundColor3 = Color3.fromRGB(0,200,100)
-NoclipBtn.Parent = Frame
-Instance.new("UICorner", NoclipBtn).CornerRadius = UDim.new(0, 8)
 Instance.new("UICorner", UnderBtn).CornerRadius = UDim.new(0, 6)
 
-local AutoAttackBtn = Instance.new("TextButton")
-AutoAttackBtn.Text = "⚔️ Auto Attack: OFF"
-AutoAttackBtn.Size = UDim2.new(1, -20, 0, 30)
-AutoAttackBtn.Position = UDim2.new(0, 10, 0, 160)
-AutoAttackBtn.TextColor3 = Color3.fromRGB(255,255,255)
-AutoAttackBtn.Font = Enum.Font.GothamBold
-AutoAttackBtn.TextSize = 14
-AutoAttackBtn.BackgroundColor3 = Color3.fromRGB(100,100,200)
-AutoAttackBtn.Parent = Frame
-Instance.new("UICorner", AutoAttackBtn).CornerRadius = UDim.new(0, 8)
-
-local StartBtn = Instance.new("TextButton")
-StartBtn.Text = "▶ Start Follow"
-StartBtn.Size = UDim2.new(1, -20, 0, 30)
-StartBtn.Position = UDim2.new(0, 10, 0, 200)
-StartBtn.TextColor3 = Color3.fromRGB(255,255,255)
-StartBtn.Font = Enum.Font.GothamBold
-StartBtn.TextSize = 14
-StartBtn.BackgroundColor3 = Color3.fromRGB(50,150,250)
-StartBtn.Parent = Frame
-Instance.new("UICorner", StartBtn).CornerRadius = UDim.new(0, 8)
 UnderBtn.MouseButton1Click:Connect(function()
     if underDist == 3 then underDist = 5
     elseif underDist == 5 then underDist = 8
     elseif underDist == 8 then underDist = 10
     else underDist = 3 end
-    UnderBtn.Text = "📐 Under (Dưới): " .. underDist .. " Studs"
+    UnderBtn.Text = "📐 Dưới (Under): " .. underDist .. " Studs"
 end)
 
-local StopBtn = Instance.new("TextButton")
-StopBtn.Text = "⏹ Stop Follow"
-StopBtn.Size = UDim2.new(1, -20, 0, 30)
-StopBtn.Position = UDim2.new(0, 10, 0, 240)
-StopBtn.TextColor3 = Color3.fromRGB(255,255,255)
-StopBtn.Font = Enum.Font.GothamBold
-StopBtn.TextSize = 14
-StopBtn.BackgroundColor3 = Color3.fromRGB(220,50,50)
-StopBtn.Parent = Frame
-Instance.new("UICorner", StopBtn).CornerRadius = UDim.new(0, 8)
--- 3. DROPDOWN CHỌN KHOẢNG CÁCH BEHIND
 local BehindBtn = Instance.new("TextButton")
-BehindBtn.Text = "🔙 Behind (Sau): 2 Studs"
+BehindBtn.Text = "🔙 Sau (Behind): " .. behindDist .. " Studs"
 BehindBtn.Size = UDim2.new(1, -20, 0, 30)
-BehindBtn.Position = UDim2.new(0, 10, 0, 115)
+BehindBtn.Position = UDim2.new(0, 10, 0, 120)
 BehindBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
 BehindBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 BehindBtn.Font = Enum.Font.Gotham
@@ -240,57 +153,32 @@ BehindBtn.TextSize = 12
 BehindBtn.Parent = Frame
 Instance.new("UICorner", BehindBtn).CornerRadius = UDim.new(0, 6)
 
-local DeleteBtn = Instance.new("TextButton")
-DeleteBtn.Text = "❌ Close GUI"
-DeleteBtn.Size = UDim2.new(1, -20, 0, 30)
-DeleteBtn.Position = UDim2.new(0, 10, 0, 280)
-DeleteBtn.TextColor3 = Color3.fromRGB(255,255,255)
-DeleteBtn.Font = Enum.Font.GothamBold
-DeleteBtn.TextSize = 14
-DeleteBtn.BackgroundColor3 = Color3.fromRGB(150,0,0)
-DeleteBtn.Parent = Frame
-Instance.new("UICorner", DeleteBtn).CornerRadius = UDim.new(0, 8)
 BehindBtn.MouseButton1Click:Connect(function()
     if behindDist == 0 then behindDist = 2
     elseif behindDist == 2 then behindDist = 4
     else behindDist = 0 end
-    BehindBtn.Text = "🔙 Behind (Sau): " .. behindDist .. " Studs"
+    BehindBtn.Text = "🔙 Sau (Behind): " .. behindDist .. " Studs"
 end)
 
--- Variables
-local connection, noclipConnection
-local attackThread, skillThread
-local UnderMode = true
-local NoclipMode = true
-local AutoAttack = false
--- 4. AUTO ATTACK TOGGLE
+-- 3. AUTO ATTACK TOGGLE
 local AutoBtn = Instance.new("TextButton")
 AutoBtn.Text = "⚔️ Auto Attack + Skill: OFF"
-AutoBtn.Size = UDim2.new(1, -20, 0, 35)
-AutoBtn.Position = UDim2.new(0, 10, 0, 155)
+AutoBtn.Size = UDim2.new(1, -20, 0, 30)
+AutoBtn.Position = UDim2.new(0, 10, 0, 160)
 AutoBtn.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
 AutoBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 AutoBtn.Font = Enum.Font.GothamBold
-AutoBtn.TextSize = 13
+AutoBtn.TextSize = 12
 AutoBtn.Parent = Frame
 Instance.new("UICorner", AutoBtn).CornerRadius = UDim.new(0, 6)
 
-UnderBtn.MouseButton1Click:Connect(function()
-    UnderMode = not UnderMode
-    UnderBtn.Text = "Under: " .. (UnderMode and "ON" or "OFF")
-    UnderBtn.BackgroundColor3 = UnderMode and Color3.fromRGB(0,200,100) or Color3.fromRGB(100,100,200)
 AutoBtn.MouseButton1Click:Connect(function()
     autoAttack = not autoAttack
     AutoBtn.Text = "⚔️ Auto Attack + Skill: " .. (autoAttack and "ON" or "OFF")
     AutoBtn.BackgroundColor3 = autoAttack and Color3.fromRGB(0, 180, 80) or Color3.fromRGB(180, 50, 50)
 end)
 
-NoclipBtn.MouseButton1Click:Connect(function()
-    NoclipMode = not NoclipMode
-    NoclipBtn.Text = "Noclip: " .. (NoclipMode and "ON" or "OFF")
-    NoclipBtn.BackgroundColor3 = NoclipMode and Color3.fromRGB(0,200,100) or Color3.fromRGB(100,100,200)
-end)
--- 5. NOCLIP TOGGLE
+-- 4. NOCLIP TOGGLE
 local NoclipBtn = Instance.new("TextButton")
 NoclipBtn.Text = "👻 Noclip: ON"
 NoclipBtn.Size = UDim2.new(1, -20, 0, 30)
@@ -302,46 +190,45 @@ NoclipBtn.TextSize = 12
 NoclipBtn.Parent = Frame
 Instance.new("UICorner", NoclipBtn).CornerRadius = UDim.new(0, 6)
 
-AutoAttackBtn.MouseButton1Click:Connect(function()
-    AutoAttack = not AutoAttack
-    AutoAttackBtn.Text = "⚔️ Auto Attack: " .. (AutoAttack and "ON" or "OFF")
-    AutoAttackBtn.BackgroundColor3 = AutoAttack and Color3.fromRGB(0,200,100) or Color3.fromRGB(100,100,200)
-    
-    if not AutoAttack then
-        if attackThread then task.cancel(attackThread); attackThread = nil end
-        if skillThread then task.cancel(skillThread); skillThread = nil end
-    end
 NoclipBtn.MouseButton1Click:Connect(function()
     noclipActive = not noclipActive
     NoclipBtn.Text = "👻 Noclip: " .. (noclipActive and "ON" or "OFF")
     NoclipBtn.BackgroundColor3 = noclipActive and Color3.fromRGB(0, 180, 80) or Color3.fromRGB(180, 50, 50)
 end)
 
-local function startNoclip()
-    if noclipConnection or not NoclipMode then return end
-    noclipConnection = RunService.Stepped:Connect(function()
-        local char = LocalPlayer.Character
-        if char then
-            for _, part in ipairs(char:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    part.CanCollide = false
-                end
-            end
-        end
-    end)
-end
+-- 5. START / STOP / CLOSE BUTTONS
+local ToggleFollowBtn = Instance.new("TextButton")
+ToggleFollowBtn.Text = "▶ Start Follow"
+ToggleFollowBtn.Size = UDim2.new(1, -20, 0, 30)
+ToggleFollowBtn.Position = UDim2.new(0, 10, 0, 240)
+ToggleFollowBtn.BackgroundColor3 = Color3.fromRGB(50, 150, 250)
+ToggleFollowBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleFollowBtn.Font = Enum.Font.GothamBold
+ToggleFollowBtn.TextSize = 13
+ToggleFollowBtn.Parent = Frame
+Instance.new("UICorner", ToggleFollowBtn).CornerRadius = UDim.new(0, 6)
 
-local function stopNoclip()
-    if noclipConnection then
-        noclipConnection:Disconnect()
-        noclipConnection = nil
+ToggleFollowBtn.MouseButton1Click:Connect(function()
+    if not isFollowing then
+        if targetPlayer then
+            isFollowing = true
+            ToggleFollowBtn.Text = "⏹ Stop Follow"
+            ToggleFollowBtn.BackgroundColor3 = Color3.fromRGB(220, 50, 50)
+        else
+            ToggleFollowBtn.Text = "❌ Chưa chọn Target!"
+            task.delay(1.5, function() ToggleFollowBtn.Text = "▶ Start Follow" end)
+        end
+    else
+        isFollowing = false
+        ToggleFollowBtn.Text = "▶ Start Follow"
+        ToggleFollowBtn.BackgroundColor3 = Color3.fromRGB(50, 150, 250)
     end
-end
--- 6. CLOSE BUTTON
+end)
+
 local CloseBtn = Instance.new("TextButton")
-CloseBtn.Text = "❌ Tắt GUI"
+CloseBtn.Text = "❌ Đóng GUI"
 CloseBtn.Size = UDim2.new(1, -20, 0, 30)
-CloseBtn.Position = UDim2.new(0, 10, 0, 310)
+CloseBtn.Position = UDim2.new(0, 10, 0, 280)
 CloseBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
 CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 CloseBtn.Font = Enum.Font.Gotham
@@ -349,110 +236,49 @@ CloseBtn.TextSize = 12
 CloseBtn.Parent = Frame
 Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0, 6)
 
--- Tối ưu đấm/bấm skill cho Mobile
-local function doClick()
-    VirtualUser:Button1Down(Vector2.new(0,0))
-    task.wait(0.05)
-    VirtualUser:Button1Up(Vector2.new(0,0))
-end
 CloseBtn.MouseButton1Click:Connect(function()
+    isFollowing = false
     ScreenGui:Destroy()
 end)
 
-local function useSkill(skillNumber)
-    -- Giả lập bấm phím skill dành riêng cho Mobile
-    local keyCodes = {
-        [1] = Enum.KeyCode.One,
-        [2] = Enum.KeyCode.Two,
-        [3] = Enum.KeyCode.Three,
-        [4] = Enum.KeyCode.Four
-    }
-    local key = keyCodes[skillNumber]
-    if key then
-        game:GetService("VirtualInputManager"):SendKeyEvent(true, key, false, game)
-        task.wait(0.05)
-        game:GetService("VirtualInputManager"):SendKeyEvent(false, key, false, game)
-    end
-end
 ---------------------------------------------------------
--- LOGIC HỆ THỐNG (NO LAG / REAL AUTO ATTACK TSB)
+-- LOGIC HỆ THỐNG
 ---------------------------------------------------------
 
-local function startAutoAttackLogic()
-    if not attackThread then
-        attackThread = task.spawn(function()
-            while AutoAttack do
-                doClick()
-                task.wait(0.5) -- Đánh thường 0.5s/lần
--- Noclip triệt để không bị đẩy
+-- 1. Noclip Xử lý liên tục
 RunService.PreRender:Connect(function()
     if noclipActive and LocalPlayer.Character then
         for _, part in ipairs(LocalPlayer.Character:GetDescendants()) do
             if part:IsA("BasePart") then
                 part.CanCollide = false
             end
-        end)
         end
     end
 end)
 
-    if not skillThread then
-        skillThread = task.spawn(function()
-            local currentSkill = 1
-            while AutoAttack do
-                useSkill(currentSkill)
-                currentSkill = (currentSkill % 4) + 1
-                task.wait(1.0) -- Spam chiêu 1s/lần
-            end
-        end)
--- Teleport & Rotate chuẩn vị trí dưới chân + sau lưng
+-- 2. Teleport & Rotate theo vị trí Target
 RunService.RenderStepped:Connect(function()
-    if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
+    if isFollowing and targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
         local myChar = LocalPlayer.Character
         if myChar and myChar:FindFirstChild("HumanoidRootPart") then
             local targetHRP = targetPlayer.Character.HumanoidRootPart
             local myHRP = myChar.HumanoidRootPart
             
-            -- Tính CFrame nằm dưới và sau lưng
             local targetCF = targetHRP.CFrame
             local posBehind = targetCF.Position - (targetCF.LookVector * behindDist)
             local finalPos = posBehind - Vector3.new(0, underDist, 0)
             
-            -- Hướng mặt lên mục tiêu
+            -- Xoay hướng mặt lên mục tiêu
             myHRP.CFrame = CFrame.lookAt(finalPos, targetHRP.Position) * CFrame.Angles(math.rad(-90), 0, 0)
         end
     end
-end
 end)
 
-local function followPlayer(player)
-    if connection then connection:Disconnect() end
-    
-    connection = RunService.RenderStepped:Connect(function()
-        if player and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-            local targetHRP = player.Character.HumanoidRootPart
-            local myChar = LocalPlayer.Character
-            if myChar and myChar:FindFirstChild("HumanoidRootPart") then
-                local myHRP = myChar.HumanoidRootPart
-                
-                local behindDist = tonumber(BehindBox.Text) or 2
-                local underDist = tonumber(UnderBox.Text) or 5
-                
-                local targetCFrame = targetHRP.CFrame
-                local posBehind = targetCFrame.Position - (targetCFrame.LookVector * behindDist)
-                
-                if UnderMode then
-                    local finalPos = posBehind - Vector3.new(0, underDist, 0)
-                    local lookCFrame = CFrame.lookAt(finalPos, targetHRP.Position)
-                    myHRP.CFrame = lookCFrame * CFrame.Angles(math.rad(-90), 0, 0)
-                else
-                    myHRP.CFrame = CFrame.new(posBehind, targetHRP.Position)
--- Auto Attack / Spam Skill cho TSB chuẩn xác
+-- 3. Auto Đánh Thường M1
 task.spawn(function()
     while true do
-        task.wait(0.3) -- Nhịp kiểm tra cực nhanh
-        if autoAttack and targetPlayer then
-            -- 1. Đánh thường M1 TSB
+        task.wait(0.25)
+        if autoAttack and isFollowing and targetPlayer then
             pcall(function()
                 local char = LocalPlayer.Character
                 if char then
@@ -461,31 +287,17 @@ task.spawn(function()
                         comm:FireServer({Goal = "LeftClick"})
                     end
                 end
-            end
             end)
         end
-    end)
-    
-    startNoclip()
-    if AutoAttack then
-        startAutoAttackLogic()
     end
-end
 end)
 
-StartBtn.MouseButton1Click:Connect(function()
-    local input = string.lower(TextBox.Text)
-    if input == "" then return end
-    local targetPlayer
-    for _, plr in ipairs(Players:GetPlayers()) do
-        if string.find(string.lower(plr.Name), input) or string.find(string.lower(plr.DisplayName), input) then
-            targetPlayer = plr
-            break
+-- 4. Auto Spam Skill (1, 2, 3, 4)
 task.spawn(function()
     local currentSkill = 1
     while true do
-        task.wait(1.0) -- Spam chiêu 1s/chiêu
-        if autoAttack and targetPlayer then
+        task.wait(1.0)
+        if autoAttack and isFollowing and targetPlayer then
             pcall(function()
                 local char = LocalPlayer.Character
                 if char then
@@ -498,24 +310,4 @@ task.spawn(function()
             currentSkill = (currentSkill % 4) + 1
         end
     end
-    if targetPlayer then
-        followPlayer(targetPlayer)
-        StartBtn.Text = "✅ Following: " .. targetPlayer.DisplayName
-    else
-        StartBtn.Text = "❌ Không tìm thấy"
-        task.delay(1.5, function() StartBtn.Text = "▶ Start Follow" end)
-    end
 end)
-
-StopBtn.MouseButton1Click:Connect(function()
-    if connection then connection:Disconnect() end
-    stopNoclip()
-    if attackThread then task.cancel(attackThread); attackThread = nil end
-    if skillThread then task.cancel(skillThread); skillThread = nil end
-    StartBtn.Text = "▶ Start Follow"
-end)
-
-DeleteBtn.MouseButton1Click:Connect(function()
-    if attackThread then task.cancel(attackThread) end
-    if skillThread then task.cancel(skillThread) end
-    ScreenGui:Destroy()
