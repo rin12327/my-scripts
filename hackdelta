@@ -61,7 +61,7 @@ local underDist = 5
 local behindDist = 2
 local autoAttack = false
 local noclipActive = true
-local followActive = false -- Biến Bật/Tắt Target / Follow
+local followActive = false
 
 -- 1. DROPDOWN CHỌN TARGET
 local TargetDropdownBtn = Instance.new("TextButton")
@@ -119,7 +119,7 @@ TargetDropdownBtn.MouseButton1Click:Connect(function()
     TargetScroll.Visible = not TargetScroll.Visible
 end)
 
--- NÚT BẬT / TẮT TARGET (BẮT ĐẦU & DỪNG)
+-- NÚT BẬT / TẮT TARGET
 local ToggleFollowBtn = Instance.new("TextButton")
 ToggleFollowBtn.Text = "▶️ Bắt Đầu Target: OFF"
 ToggleFollowBtn.Size = UDim2.new(1, -20, 0, 30)
@@ -261,9 +261,9 @@ NoclipBtn.MouseButton1Click:Connect(function()
     NoclipBtn.BackgroundColor3 = noclipActive and Color3.fromRGB(0, 180, 80) or Color3.fromRGB(180, 50, 50)
 end)
 
--- 6. ANTILAG MẠNH + SPAWN PLATFORM BẰNG ĐÁ
+-- 6. SIÊU ANTILAG (XÓA MAP + SKY + VFX)
 local AntiLagBtn = Instance.new("TextButton")
-AntiLagBtn.Text = "🚀 Anti-Lag Siêu Mạnh + Bệ Đá"
+AntiLagBtn.Text = "💥 Xóa Map / VFX / Sky (Siêu Mượt)"
 AntiLagBtn.Size = UDim2.new(1, -20, 0, 30)
 AntiLagBtn.Position = UDim2.new(0, 10, 0, 270)
 AntiLagBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
@@ -275,32 +275,43 @@ Instance.new("UICorner", AntiLagBtn).CornerRadius = UDim.new(0, 6)
 
 AntiLagBtn.MouseButton1Click:Connect(function()
     pcall(function()
+        -- Tắt ánh sáng, sương mù & Xóa Skybox
         Lighting.GlobalShadows = false
         Lighting.FogEnd = 9e9
-        Lighting.Brightness = 2
-        
-        -- Xóa VFX / Particle / Decal thừa & Smooth hóa toàn bộ khối
-        for _, v in ipairs(Workspace:GetDescendants()) do
-            if v:IsA("BasePart") then
-                v.Material = Enum.Material.SmoothPlastic
-                v.Color = Color3.fromRGB(150, 150, 150)
-                v.Reflectance = 0
-            elseif v:IsA("Decal") or v:IsA("Texture") or v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Fire") or v:IsA("Smoke") or v:IsA("Sparkles") then
-                v:Destroy()
+        Lighting.Brightness = 1
+        for _, sky in ipairs(Lighting:GetChildren()) do
+            if sky:IsA("Sky") or sky:IsA("Atmosphere") or sky:IsA("PostEffect") then
+                sky:Destroy()
             end
         end
 
-        -- Tạo bệ đá khổng lồ ở khu vực Spawn để chống rơi xuống Void
+        -- Tạo bệ đá đứng chống Void
         local spawnPlatform = Instance.new("Part")
-        spawnPlatform.Name = "RonaldoSpawnPlatform"
-        spawnPlatform.Size = Vector3.new(2000, 10, 2000)
+        spawnPlatform.Name = "RonaldoPlatform"
+        spawnPlatform.Size = Vector3.new(3000, 10, 3000)
         spawnPlatform.Position = Vector3.new(0, -5, 0)
         spawnPlatform.Anchored = true
-        spawnPlatform.Material = Enum.Material.Slate -- Chất liệu bằng Đá
-        spawnPlatform.Color = Color3.fromRGB(80, 80, 80)
+        spawnPlatform.Material = Enum.Material.Slate
+        spawnPlatform.Color = Color3.fromRGB(70, 70, 70)
         spawnPlatform.Parent = Workspace
+
+        -- Xóa toàn bộ khối Map & Hiệu ứng VFX
+        for _, obj in ipairs(Workspace:GetChildren()) do
+            if obj ~= spawnPlatform and not Players:GetPlayerFromCharacter(obj) then
+                if obj:IsA("BasePart") or obj:IsA("Model") or obj:IsA("Folder") then
+                    pcall(function() obj:Destroy() end)
+                end
+            end
+        end
+
+        -- Dọn dẹp Particle/VFX sót lại trong ReplicatedStorage nếu có
+        for _, v in ipairs(Workspace:GetDescendants()) do
+            if v:IsA("Decal") or v:IsA("Texture") or v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Fire") or v:IsA("Smoke") or v:IsA("Sparkles") then
+                v:Destroy()
+            end
+        end
     end)
-    AntiLagBtn.Text = "🚀 Đã tối ưu & Tạo bệ đá!"
+    AntiLagBtn.Text = "💥 Đã xóa sạch Map & Sky!"
     AntiLagBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 80)
 end)
 
@@ -324,7 +335,7 @@ end)
 -- LOGIC HỆ THỐNG
 ---------------------------------------------------------
 
--- Noclip triệt để cho Character và Camera (Chống vướng khối/tường)
+-- Noclip triệt để cho Character
 RunService.PreRender:Connect(function()
     if noclipActive then
         local char = LocalPlayer.Character
@@ -335,13 +346,10 @@ RunService.PreRender:Connect(function()
                 end
             end
         end
-        -- Cho phép Camera xuyên qua mọi vật thể, không bị giật/vướng khối
-        LocalPlayer.CameraMaxZoomDistance = 400
-        Workspace.CurrentCamera.CFrame = Workspace.CurrentCamera.CFrame
     end
 end)
 
--- Teleport & Rotate chuẩn vị trí dưới chân + sau lưng (Chỉ chạy khi bật Follow)
+-- Teleport & Rotate + CAMERA LOCK THEO DÕI TARGET
 RunService.RenderStepped:Connect(function()
     if followActive and targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
         local myChar = LocalPlayer.Character
@@ -354,6 +362,17 @@ RunService.RenderStepped:Connect(function()
             local finalPos = posBehind - Vector3.new(0, underDist, 0)
             
             myHRP.CFrame = CFrame.lookAt(finalPos, targetHRP.Position) * CFrame.Angles(math.rad(-90), 0, 0)
+            
+            -- Khóa Camera nhìn thẳng vào Target
+            local camera = Workspace.CurrentCamera
+            camera.CameraType = Enum.CameraType.Scriptable
+            camera.CFrame = CFrame.lookAt(camera.CFrame.Position, targetHRP.Position)
+        end
+    else
+        -- Trả Camera về bình thường nếu tắt Target
+        local camera = Workspace.CurrentCamera
+        if camera.CameraType == Enum.CameraType.Scriptable then
+            camera.CameraType = Enum.CameraType.Custom
         end
     end
 end)
