@@ -1,7 +1,7 @@
 -- =========================================================
--- TSB SCRIPT - VERSION 4.1 (SPECIAL FOR TSB R6)
+-- TSB SCRIPT - VERSION 4.2 (SUPER SMOOTH PART & ANTI-LAG R6)
 -- =========================================================
-local SCRIPT_VERSION = 4.1
+local SCRIPT_VERSION = 4.2
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -64,7 +64,7 @@ ToggleGuiBtn.MouseButton1Click:Connect(function()
 end)
 
 local Title = Instance.new("TextLabel")
-Title.Text = "⚡ TSB R6 Target & Anti-Lag"
+Title.Text = "⚡ TSB R6 Target & Super Smooth"
 Title.Size = UDim2.new(1, 0, 0, 30)
 Title.BackgroundTransparency = 1
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -279,9 +279,9 @@ NoclipBtn.MouseButton1Click:Connect(function()
     NoclipBtn.BackgroundColor3 = noclipActive and Color3.fromRGB(0, 180, 80) or Color3.fromRGB(180, 50, 50)
 end)
 
--- 6. OPTIMIZE MAP & BẢO VỆ NHÂN VẬT R6
+-- 6. SUPER SMOOTH PART & OPTIMIZE MAP (TSB R6)
 local AntiLagBtn = Instance.new("TextButton")
-AntiLagBtn.Text = "💥 Clear Map + Anti-Void: OFF"
+AntiLagBtn.Text = "💥 Clear Map + Super Smooth: OFF"
 AntiLagBtn.Size = UDim2.new(1, -20, 0, 30)
 AntiLagBtn.Position = UDim2.new(0, 10, 0, 270)
 AntiLagBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
@@ -291,7 +291,7 @@ AntiLagBtn.TextSize = 12
 AntiLagBtn.Parent = Frame
 Instance.new("UICorner", AntiLagBtn).CornerRadius = UDim.new(0, 6)
 
--- Hàm kiểm tra chính xác Nhân vật R6
+-- Kiểm tra xem vật thể thuộc Nhân vật hay không
 local function isR6Character(obj)
     if not obj then return false end
     for _, plr in ipairs(Players:GetPlayers()) do
@@ -302,7 +302,7 @@ local function isR6Character(obj)
     return false
 end
 
--- Tạo Sàn Chống Void
+-- Tạo Sàn Chống Void Bảo Vệ
 local function createAntiVoidFloor()
     if not Workspace:FindFirstChild("AntiVoidSafetyFloor") then
         local floor = Instance.new("Part")
@@ -317,32 +317,38 @@ local function createAntiVoidFloor()
     end
 end
 
--- Xử lý thuộc tính vật thể (Xóa VFX, Cloud, Smooth Part & Mở Noclip Map)
+-- HÀM TỐI ƯU SIÊU MỊN & SIÊU MƯỢT (SUPER SMOOTH PART)
 local function processObject(obj)
     if not obj then return end
     pcall(function()
         if obj.Name == "AntiVoidSafetyFloor" or obj:IsA("Camera") or obj:IsA("Terrain") then return end
         
-        -- NẾU LÀ NHÂN VẬT R6 -> BẢO VỆ HIỂN THỊ 100%, ĐƯA VỀ SMOOTH PLASTIC
+        -- NHÂN VẬT: Giữ lại hiển thị, ép SmoothPlastic mịn màng
         if isR6Character(obj) then
             if obj:IsA("BasePart") then
                 obj.Material = Enum.Material.SmoothPlastic
+                obj.Reflectance = 0
                 obj.Transparency = 0
             end
             return
         end
 
-        -- XÓA SẠCH HIỆU ỨNG VFX / KHÓI / MÂY
-        if obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Smoke") or obj:IsA("Fire") or obj:IsA("Sparkles") or obj:IsA("Highlight") or obj:IsA("Beam") then
+        -- XÓA SẠCH VFX, KHÓI, MÂY, HIỆU ỨNG RÁC
+        if obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Smoke") or obj:IsA("Fire") or obj:IsA("Sparkles") or obj:IsA("Highlight") or obj:IsA("Beam") or obj:IsA("Decal") or obj:IsA("Texture") then
             obj:Destroy()
             return
         end
 
-        -- VỚI MAP PARTS -> Smooth & Vô hình (Không xóa để tránh làm hỏng khớp R6)
+        -- MAP PART: Ép SmoothPlastic + Tắt bóng đổ + Ẩn bớt để chống Lag
         if obj:IsA("BasePart") or obj:IsA("MeshPart") then
+            obj.Material = Enum.Material.SmoothPlastic
+            obj.Reflectance = 0
+            obj.CastShadow = false
             obj.Transparency = 1
             obj.CanCollide = false
-            obj.Material = Enum.Material.SmoothPlastic
+            if obj:IsA("MeshPart") then
+                obj.RenderFidelity = Enum.RenderFidelity.Performance
+            end
         end
     end)
 end
@@ -351,6 +357,7 @@ AntiLagBtn.MouseButton1Click:Connect(function()
     autoOptimize = true
     createAntiVoidFloor()
 
+    -- Tối ưu Lighting & Bầu trời
     pcall(function()
         Lighting.GlobalShadows = false
         Lighting.FogEnd = 9e9
@@ -366,14 +373,16 @@ AntiLagBtn.MouseButton1Click:Connect(function()
         if Workspace.Terrain then Workspace.Terrain:Clear() end
     end)
 
+    -- Áp dụng Super Smooth cho toàn bộ game
     for _, v in ipairs(Workspace:GetDescendants()) do
         processObject(v)
     end
 
-    AntiLagBtn.Text = "💥 Clear Map + Anti-Void: ON!"
+    AntiLagBtn.Text = "💥 Super Smooth + Anti-Void: ON!"
     AntiLagBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 80)
 end)
 
+-- Tự động làm mịn & dọn dẹp các Part skill mới sinh ra
 Workspace.DescendantAdded:Connect(function(child)
     if autoOptimize then
         task.wait(0.02)
