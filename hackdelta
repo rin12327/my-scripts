@@ -1,7 +1,7 @@
 -- =========================================================
--- TSB SCRIPT - VERSION 3.0 (TÍCH HỢP ĐẦY ĐỦ GUI HACK & ANTI-LAG)
+-- TSB SCRIPT - VERSION 3.1 (BẢO VỆ NHÂN VẬT TUYỆT ĐỐI)
 -- =========================================================
-local SCRIPT_VERSION = 3.0
+local SCRIPT_VERSION = 3.1
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -279,7 +279,7 @@ NoclipBtn.MouseButton1Click:Connect(function()
     NoclipBtn.BackgroundColor3 = noclipActive and Color3.fromRGB(0, 180, 80) or Color3.fromRGB(180, 50, 50)
 end)
 
--- 6. SIÊU ANTILAG + XÓA PHỤ KIỆN + ANTI VOID
+-- 6. SIÊU ANTILAG - BẢO VỆ NHÂN VẬT CHẮC CHẮN 100%
 local AntiLagBtn = Instance.new("TextButton")
 AntiLagBtn.Text = "💥 Clear Map + Anti-Void: OFF"
 AntiLagBtn.Size = UDim2.new(1, -20, 0, 30)
@@ -291,34 +291,15 @@ AntiLagBtn.TextSize = 12
 AntiLagBtn.Parent = Frame
 Instance.new("UICorner", AntiLagBtn).CornerRadius = UDim.new(0, 6)
 
--- Hàm kiểm tra thuộc tính Nhân vật
+-- THUẬT TOÁN BẢO VỆ NHÂN VẬT TUYỆT ĐỐI
 local function isCharacter(obj)
     if not obj then return false end
-    if Players:GetPlayerFromCharacter(obj) then return true end
-    local parent = obj.Parent
-    while parent and parent ~= Workspace do
-        if Players:GetPlayerFromCharacter(parent) then return true end
-        parent = parent.Parent
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr.Character and (obj == plr.Character or obj:IsDescendantOf(plr.Character)) then
+            return true
+        end
     end
     return false
-end
-
--- Hàm làm sạch nhân vật (Mịn vật liệu & xóa phụ kiện)
-local function cleanCharacter(char)
-    if not char then return end
-    for _, item in ipairs(char:GetChildren()) do
-        if item:IsA("Accessory") or item:IsA("Hat") or item:IsA("Accoutrement") then
-            item:Destroy()
-        end
-    end
-    for _, desc in ipairs(char:GetDescendants()) do
-        if desc:IsA("BasePart") then
-            desc.Material = Enum.Material.SmoothPlastic
-            desc.Reflectance = 0
-        elseif desc:IsA("ParticleEmitter") or desc:IsA("Trail") or desc:IsA("Smoke") or desc:IsA("Fire") or desc:IsA("Sparkles") or desc:IsA("Highlight") then
-            desc:Destroy()
-        end
-    end
 end
 
 -- Tạo Sàn Chống Void
@@ -339,11 +320,11 @@ end
 local function cleanObject(obj)
     if not obj then return end
     pcall(function()
+        -- KHÔNG BAO GIỜ xóa Sàn AntiVoid, Camera, Terrain, và BẤT KỲ NHÂN VẬT NÀO
         if obj.Name == "AntiVoidSafetyFloor" or obj:IsA("Camera") or obj:IsA("Terrain") then return end
-        if isCharacter(obj) then 
-            cleanCharacter(obj)
-            return 
-        end
+        if isCharacter(obj) then return end
+
+        -- Xóa các khối map, hiệu ứng VFX rác
         obj:Destroy()
     end)
 end
@@ -361,14 +342,11 @@ AntiLagBtn.MouseButton1Click:Connect(function()
 
         if Workspace.Terrain then Workspace.Terrain:Clear() end
 
+        -- Xóa mọi khối rác trong Workspace trừ người chơi
         for _, v in ipairs(Workspace:GetChildren()) do
             cleanObject(v)
         end
     end)
-
-    for _, plr in ipairs(Players:GetPlayers()) do
-        if plr.Character then cleanCharacter(plr.Character) end
-    end
     
     AntiLagBtn.Text = "💥 Clear Map + Anti-Void: ON!"
     AntiLagBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 80)
