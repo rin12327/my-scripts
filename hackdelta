@@ -1,9 +1,40 @@
+-- =========================================================
+-- QUẢN LÝ PHIÊN BẢN (Nâng lên 2.1)
+-- =========================================================
+local SCRIPT_VERSION = 2.1 
+
 local Workspace = game:GetService("Workspace")
 local Players = game:GetService("Players")
 local Lighting = game:GetService("Lighting")
 local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
--- 1. TẠO SÀN BẢO VỆ CHỐNG RƠI VOID
+-- 1. HIỂN THỊ THÔNG BÁO PHIÊN BẢN TRÊN MÀN HÌNH
+if PlayerGui:FindFirstChild("VersionDisplayGui") then
+    PlayerGui.VersionDisplayGui:Destroy()
+end
+
+local versionGui = Instance.new("ScreenGui")
+versionGui.Name = "VersionDisplayGui"
+versionGui.ResetOnSpawn = false
+versionGui.Parent = PlayerGui
+
+local versionLabel = Instance.new("TextLabel")
+versionLabel.Size = UDim2.new(0, 200, 0, 30)
+versionLabel.Position = UDim2.new(0, 10, 0, 10)
+versionLabel.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+versionLabel.BackgroundTransparency = 0.4
+versionLabel.TextColor3 = Color3.fromRGB(0, 255, 127)
+versionLabel.Font = Enum.Font.GothamBold
+versionLabel.TextSize = 14
+versionLabel.Text = "⚡ Anti-Lag Version: " .. string.format("%.1f", SCRIPT_VERSION)
+versionLabel.Parent = versionGui
+
+local uiCorner = Instance.new("UICorner", versionLabel)
+uiCorner.CornerRadius = UDim.new(0, 6)
+
+-- 2. TẠO SÀN BẢO VỆ CHỐNG RƠI VOID
 local antiVoidFloor = Workspace:FindFirstChild("AntiVoidSafetyFloor")
 if not antiVoidFloor then
     antiVoidFloor = Instance.new("Part")
@@ -17,38 +48,52 @@ if not antiVoidFloor then
     antiVoidFloor.Parent = Workspace
 end
 
--- 2. TẮT ÁNH SÁNG, BẦU TRỜI, MÂY, BÓNG ĐỔ, TẠO MÔI TRƯỜNG PHẲNG
+-- 3. TẮT ÁNH SÁNG, BẦU TRỜI, MÂY, BÓNG ĐỔ
 pcall(function()
     Lighting.GlobalShadows = false
     Lighting.FogEnd = 9e9
     Lighting.Brightness = 1
     Lighting.ClockTime = 12
     
-    -- Xóa bầu trời, mây và các effect trong Lighting
     for _, item in ipairs(Lighting:GetChildren()) do
         if item:IsA("Sky") or item:IsA("Clouds") or item:IsA("PostEffect") or item:IsA("Atmosphere") then
             item:Destroy()
         end
     end
 
-    -- Xóa Terrain (Địa hình 3D)
     if Workspace.Terrain then
         Workspace.Terrain:Clear()
     end
 end)
 
--- 3. HÀM XÓA PHỤ KIỆN & HIỆU ỨNG TRÊN NHÂN VẬT
+-- 4. HÀM KIỂM TRA XEM MỘT VẬT THỂ CÓ THUỘC VỀ NHÂN VẬT HAY KHÔNG (BẢO VỆ TUYỆT ĐỐI)
+local function isCharacter(obj)
+    if not obj then return false end
+    -- Kiểm tra nếu bản thân obj là Model Nhân vật
+    if Players:GetPlayerFromCharacter(obj) then return true end
+    -- Kiểm tra nếu obj là bộ phận nằm bên trong Nhân vật
+    local parent = obj.Parent
+    while parent and parent ~= Workspace do
+        if Players:GetPlayerFromCharacter(parent) then
+            return true
+        end
+        parent = parent.Parent
+    end
+    return false
+end
+
+-- 5. HÀM XÓA PHỤ KIỆN & HIỆU ỨNG TRÊN NHÂN VẬT
 local function cleanCharacter(char)
     if not char then return end
     
-    -- Xóa phụ kiện (mũ, cánh, trang phục 3D...)
+    -- Xóa phụ kiện (mũ, cánh...)
     for _, item in ipairs(char:GetChildren()) do
         if item:IsA("Accessory") or item:IsA("Hat") or item:IsA("Accoutrement") then
             item:Destroy()
         end
     end
     
-    -- Lầm mịn vật liệu các bộ phận và xóa VFX dính trên người
+    -- Đưa vật liệu nhân vật về SmoothPlastic & xóa hiệu ứng dính trên người
     for _, desc in ipairs(char:GetDescendants()) do
         if desc:IsA("BasePart") then
             desc.Material = Enum.Material.SmoothPlastic
@@ -59,60 +104,55 @@ local function cleanCharacter(char)
     end
 end
 
--- 4. HÀM LỌC VÀ XÓA TOÀN BỘ MAP / KHỐI / VFX
+-- 6. HÀM LỌC VÀ XÓA MAP (KHÔNG BAO GIỜ XÓA NHÂN VẬT)
 local function cleanObject(obj)
     if not obj then return end
     pcall(function()
-        -- Giữ lại Sàn AntiVoid
+        -- 🛑 KHÔNG XÓA Sàn AntiVoid & NHÂN VẬT
         if obj.Name == "AntiVoidSafetyFloor" then return end
-        
-        -- Nếu là Nhân vật người chơi -> Dọn phụ kiện & VFX dính kèm
-        if Players:GetPlayerFromCharacter(obj) or (obj.Parent and Players:GetPlayerFromCharacter(obj.Parent)) then 
+        if isCharacter(obj) then 
             cleanCharacter(obj)
             return 
         end
 
-        -- Nếu là Khối / Part / Mesh -> Chuyển SmoothPlastic nếu giữ, hoặc Xóa sạch
-        if obj:IsA("BasePart") or obj:IsA("MeshPart") then
-            obj.Material = Enum.Material.SmoothPlastic
-        end
-
-        -- Xóa tất cả các hiệu ứng kỹ năng / vfx
+        -- Xóa các hiệu ứng kỹ năng / vfx xuất hiện trong Map
         if obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Smoke") or obj:IsA("Fire") or obj:IsA("Sparkles") or obj:IsA("Highlight") or obj:IsA("Beam") then
             obj:Destroy()
             return
         end
 
-        -- Xóa mọi thứ khác trong Workspace (Trừ nhân vật & Sàn)
+        -- Nếu là khối Map thông thường -> Chuyển SmoothPlastic rồi XÓA
         if not obj:IsA("Camera") and not obj:IsA("Terrain") then
             obj:Destroy()
         end
     end)
 end
 
--- 5. THỰC THI QUÉT CLEAN MAP
+-- 7. THỰC THI QUÉT XÓA MAP
 for _, child in ipairs(Workspace:GetChildren()) do
     cleanObject(child)
 end
 
--- Dọn phụ kiện cho tất cả người chơi hiện tại
+-- Dọn phụ kiện cho tất cả người chơi & bảo vệ khi họ Respawn
 for _, plr in ipairs(Players:GetPlayers()) do
     if plr.Character then
         cleanCharacter(plr.Character)
     end
     plr.CharacterAdded:Connect(function(char)
-        task.wait(0.1)
+        task.wait(0.2)
         cleanCharacter(char)
     end)
 end
 
--- 6. TỰ ĐỘNG XÓA KHỐI / VFX MỚI SINH RA TỪ SERVER
+-- 8. TỰ ĐỘNG XÓA VẬT THỂ MỚI SINH RA TỪ SERVER (BẢO VỆ NHÂN VẬT MỚI VÀO)
 Workspace.ChildAdded:Connect(function(child)
-    task.wait(0.01)
-    cleanObject(child)
+    task.wait(0.05)
+    if not isCharacter(child) then
+        cleanObject(child)
+    end
 end)
 
--- 7. KHÓA CHỐNG RƠI VOID CHẮC CHẮN (Giữ vị trí Y luôn lớn hơn sàn)
+-- 9. CHỐNG RƠI VOID CỐ ĐỊNH
 RunService.Stepped:Connect(function()
     for _, plr in ipairs(Players:GetPlayers()) do
         local char = plr.Character
