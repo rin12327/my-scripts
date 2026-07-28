@@ -1,7 +1,7 @@
 -- =========================================================
--- TSB SCRIPT - VERSION 3.1 (BẢO VỆ NHÂN VẬT TUYỆT ĐỐI)
+-- TSB SCRIPT - VERSION 4.0 (FIX LỖI BIẾN MẤT NHÂN VẬT)
 -- =========================================================
-local SCRIPT_VERSION = 3.1
+local SCRIPT_VERSION = 4.0
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -79,7 +79,7 @@ local behindDist = 0
 local autoAttack = false
 local noclipActive = true
 local followActive = false
-local autoDestroyParts = false
+local autoOptimize = false
 
 -- 1. DROPDOWN CHỌN TARGET
 local TargetDropdownBtn = Instance.new("TextButton")
@@ -279,7 +279,7 @@ NoclipBtn.MouseButton1Click:Connect(function()
     NoclipBtn.BackgroundColor3 = noclipActive and Color3.fromRGB(0, 180, 80) or Color3.fromRGB(180, 50, 50)
 end)
 
--- 6. SIÊU ANTILAG - BẢO VỆ NHÂN VẬT CHẮC CHẮN 100%
+-- 6. SIÊU ANTI-LAG (KHÔNG XÓA PART -> CHỈ ẨN MAP & MỊN HOÁ ĐỂ KHÔNG MẤT NHÂN VẬT)
 local AntiLagBtn = Instance.new("TextButton")
 AntiLagBtn.Text = "💥 Clear Map + Anti-Void: OFF"
 AntiLagBtn.Size = UDim2.new(1, -20, 0, 30)
@@ -291,7 +291,7 @@ AntiLagBtn.TextSize = 12
 AntiLagBtn.Parent = Frame
 Instance.new("UICorner", AntiLagBtn).CornerRadius = UDim.new(0, 6)
 
--- THUẬT TOÁN BẢO VỆ NHÂN VẬT TUYỆT ĐỐI
+-- Kiểm tra xem vật thể có phải người chơi hay không
 local function isCharacter(obj)
     if not obj then return false end
     for _, plr in ipairs(Players:GetPlayers()) do
@@ -302,7 +302,7 @@ local function isCharacter(obj)
     return false
 end
 
--- Tạo Sàn Chống Void
+-- Tạo Sàn Chống Void Bảo Vệ
 local function createAntiVoidFloor()
     if not Workspace:FindFirstChild("AntiVoidSafetyFloor") then
         local floor = Instance.new("Part")
@@ -317,45 +317,72 @@ local function createAntiVoidFloor()
     end
 end
 
-local function cleanObject(obj)
+-- Dọn dẹp an toàn: Chỉ ẩn khối map, XÓA VFX & Clouds, GIỮ NGUYÊN Nhân Vật
+local function processObject(obj)
     if not obj then return end
     pcall(function()
-        -- KHÔNG BAO GIỜ xóa Sàn AntiVoid, Camera, Terrain, và BẤT KỲ NHÂN VẬT NÀO
         if obj.Name == "AntiVoidSafetyFloor" or obj:IsA("Camera") or obj:IsA("Terrain") then return end
-        if isCharacter(obj) then return end
+        
+        -- Nếu là Nhân vật -> Đưa về SmoothPlastic, BẢO VỆ HIỂN THỊ
+        if isCharacter(obj) then
+            if obj:IsA("BasePart") then
+                obj.Material = Enum.Material.SmoothPlastic
+                obj.Transparency = 0
+            end
+            return
+        end
 
-        -- Xóa các khối map, hiệu ứng VFX rác
-        obj:Destroy()
+        -- Xóa triệt để các loại hiệu ứng VFX, Mây, Khói, Hạt
+        if obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Smoke") or obj:IsA("Fire") or obj:IsA("Sparkles") or obj:IsA("Highlight") or obj:IsA("Beam") then
+            obj:Destroy()
+            return
+        end
+
+        -- Nếu là Khối Part của Map -> Làm vô hình (Transparency = 1) thay vì Destroy để không bị mất nhân vật
+        if obj:IsA("BasePart") or obj:IsA("MeshPart") then
+            obj.Transparency = 1
+            obj.CanCollide = false
+            obj.Material = Enum.Material.SmoothPlastic
+        end
     end)
 end
 
 AntiLagBtn.MouseButton1Click:Connect(function()
-    autoDestroyParts = true
+    autoOptimize = true
     createAntiVoidFloor()
 
+    -- Tắt ánh sáng, bóng đổ, xóa bầu trời & mây
     pcall(function()
         Lighting.GlobalShadows = false
         Lighting.FogEnd = 9e9
         Lighting.Brightness = 1
         Lighting.ClockTime = 12
-        Lighting:ClearAllChildren()
+        
+        for _, v in ipairs(Lighting:GetChildren()) do
+            if v:IsA("Sky") or v:IsA("Clouds") or v:IsA("PostEffect") or v:IsA("Atmosphere") then
+                v:Destroy()
+            end
+        end
 
         if Workspace.Terrain then Workspace.Terrain:Clear() end
-
-        -- Xóa mọi khối rác trong Workspace trừ người chơi
-        for _, v in ipairs(Workspace:GetChildren()) do
-            cleanObject(v)
-        end
     end)
-    
+
+    -- Áp dụng xử lý cho toàn bộ Workspace
+    for _, v in ipairs(Workspace:GetDescendants()) do
+        processObject(v)
+    end
+
     AntiLagBtn.Text = "💥 Clear Map + Anti-Void: ON!"
     AntiLagBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 80)
 end)
 
-Workspace.ChildAdded:Connect(function(child)
-    if autoDestroyParts then
-        task.wait(0.05)
-        if not isCharacter(child) then cleanObject(child) end
+-- Tự động làm ẩn các Part kĩ năng mới sinh ra từ Server mà không đụng vào Người chơi
+Workspace.DescendantAdded:Connect(function(child)
+    if autoOptimize then
+        task.wait(0.02)
+        if not isCharacter(child) then
+            processObject(child)
+        end
     end
 end)
 
@@ -458,7 +485,7 @@ task.spawn(function()
     end
 end)
 
--- Khóa Chống Rơi Void 
+-- Khóa Chống Rơi Void (Tự động giữ Y an toàn)
 RunService.Stepped:Connect(function()
     for _, plr in ipairs(Players:GetPlayers()) do
         local char = plr.Character
