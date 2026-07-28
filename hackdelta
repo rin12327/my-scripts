@@ -1,7 +1,7 @@
 -- =========================================================
--- TSB SCRIPT - VERSION 5.1 (ORBIT TARGET & DEFAULT CAM R6)
+-- TSB SCRIPT - VERSION 5.2 (SMOOTH ORBIT & CLEAN CAM R6)
 -- =========================================================
-local SCRIPT_VERSION = 5.1
+local SCRIPT_VERSION = 5.2
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -50,7 +50,7 @@ Instance.new("UICorner", ToggleGuiBtn).CornerRadius = UDim.new(0, 6)
 
 -- MAIN FRAME
 local Frame = Instance.new("Frame")
-Frame.Size = UDim2.new(0, 260, 0, 470)
+Frame.Size = UDim2.new(0, 260, 0, 450)
 Frame.Position = UDim2.new(0.5, -130, 0.15, 0)
 Frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 Frame.BorderSizePixel = 0
@@ -64,7 +64,7 @@ ToggleGuiBtn.MouseButton1Click:Connect(function()
 end)
 
 local Title = Instance.new("TextLabel")
-Title.Text = "⚡ TSB R6 Orbit Target Mode"
+Title.Text = "⚡ TSB R6 Fixed Orbit"
 Title.Size = UDim2.new(1, 0, 0, 30)
 Title.BackgroundTransparency = 1
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -72,12 +72,12 @@ Title.Font = Enum.Font.GothamBold
 Title.TextSize = 14
 Title.Parent = Frame
 
--- Biến lưu thông số Orbit
+-- Biến lưu thông số Orbit (Mặc định: Khoảng cách 5, Tốc độ 8)
 local targetPlayer = nil
-local orbitRadius = 4      -- Bán kính xoay (Studs)
-local orbitSpeed = 6       -- Tốc độ xoay vòng tròn
-local currentAngle = 0     -- Góc xoay hiện tại
-local leadFactor = 0.15    -- Dự đoán vận tốc target
+local orbitRadius = 5      -- Mặc định khoảng cách 5
+local orbitSpeed = 8       -- Mặc định tốc độ xoay 8
+local currentAngle = 0     
+local leadFactor = 0.12    
 local autoAttack = false
 local noclipActive = true
 local followActive = false
@@ -157,9 +157,9 @@ ToggleFollowBtn.MouseButton1Click:Connect(function()
     ToggleFollowBtn.BackgroundColor3 = followActive and Color3.fromRGB(0, 180, 80) or Color3.fromRGB(180, 50, 50)
 end)
 
--- 2. KHOẢNG CÁCH XOAY (ORBIT RADIUS)
+-- 2. KHOẢNG CÁCH XOAY (1 ĐẾN 8 STUDS)
 local RadiusBtn = Instance.new("TextButton")
-RadiusBtn.Text = "⭕ Khoảng cách Xoay: 4 Studs"
+RadiusBtn.Text = "⭕ Khoảng cách Xoay: 5 Studs"
 RadiusBtn.Size = UDim2.new(1, -20, 0, 30)
 RadiusBtn.Position = UDim2.new(0, 10, 0, 105)
 RadiusBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
@@ -175,12 +175,12 @@ RadiusScroll.Position = UDim2.new(0, 10, 0, 140)
 RadiusScroll.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
 RadiusScroll.Visible = false
 RadiusScroll.ZIndex = 10
-RadiusScroll.CanvasSize = UDim2.new(0, 0, 0, 250)
+RadiusScroll.CanvasSize = UDim2.new(0, 0, 0, 200)
 RadiusScroll.Parent = Frame
 local UIList2 = Instance.new("UIListLayout", RadiusScroll)
 UIList2.SortOrder = Enum.SortOrder.LayoutOrder
 
-for i = 2, 12, 2 do
+for i = 1, 8 do
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(1, 0, 0, 25)
     btn.Text = i .. " Studs"
@@ -201,56 +201,11 @@ RadiusBtn.MouseButton1Click:Connect(function()
     RadiusScroll.Visible = not RadiusScroll.Visible
 end)
 
--- 3. TỐC ĐỘ XOAY (ORBIT SPEED)
-local SpeedBtn = Instance.new("TextButton")
-SpeedBtn.Text = "🔄 Tốc Độ Xoay: Vừa (6)"
-SpeedBtn.Size = UDim2.new(1, -20, 0, 30)
-SpeedBtn.Position = UDim2.new(0, 10, 0, 140)
-SpeedBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-SpeedBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-SpeedBtn.Font = Enum.Font.Gotham
-SpeedBtn.TextSize = 12
-SpeedBtn.Parent = Frame
-Instance.new("UICorner", SpeedBtn).CornerRadius = UDim.new(0, 6)
-
-local SpeedScroll = Instance.new("ScrollingFrame")
-SpeedScroll.Size = UDim2.new(1, -20, 0, 100)
-SpeedScroll.Position = UDim2.new(0, 10, 0, 175)
-SpeedScroll.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-SpeedScroll.Visible = false
-SpeedScroll.ZIndex = 10
-SpeedScroll.CanvasSize = UDim2.new(0, 0, 0, 120)
-SpeedScroll.Parent = Frame
-local UIList3 = Instance.new("UIListLayout", SpeedScroll)
-UIList3.SortOrder = Enum.SortOrder.LayoutOrder
-
-local speeds = {{"Chậm", 3}, {"Vừa", 6}, {"Nhanh", 10}, {"Siêu Nhanh", 16}}
-for _, item in ipairs(speeds) do
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, 0, 0, 25)
-    btn.Text = item[1] .. " (" .. item[2] .. ")"
-    btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    btn.Font = Enum.Font.Gotham
-    btn.TextSize = 11
-    btn.ZIndex = 11
-    btn.Parent = SpeedScroll
-    btn.MouseButton1Click:Connect(function()
-        orbitSpeed = item[2]
-        SpeedBtn.Text = "🔄 Tốc Độ Xoay: " .. item[1] .. " (" .. orbitSpeed .. ")"
-        SpeedScroll.Visible = false
-    end)
-end
-
-SpeedBtn.MouseButton1Click:Connect(function()
-    SpeedScroll.Visible = not SpeedScroll.Visible
-end)
-
--- 4. AUTO ATTACK TOGGLE
+-- 3. AUTO ATTACK TOGGLE
 local AutoBtn = Instance.new("TextButton")
 AutoBtn.Text = "⚔️ Auto Attack + Skill: OFF"
 AutoBtn.Size = UDim2.new(1, -20, 0, 35)
-AutoBtn.Position = UDim2.new(0, 10, 0, 180)
+AutoBtn.Position = UDim2.new(0, 10, 0, 145)
 AutoBtn.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
 AutoBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 AutoBtn.Font = Enum.Font.GothamBold
@@ -264,11 +219,11 @@ AutoBtn.MouseButton1Click:Connect(function()
     AutoBtn.BackgroundColor3 = autoAttack and Color3.fromRGB(0, 180, 80) or Color3.fromRGB(180, 50, 50)
 end)
 
--- 5. NOCLIP TOGGLE
+-- 4. NOCLIP TOGGLE
 local NoclipBtn = Instance.new("TextButton")
 NoclipBtn.Text = "👻 Noclip (Char): ON"
 NoclipBtn.Size = UDim2.new(1, -20, 0, 30)
-NoclipBtn.Position = UDim2.new(0, 10, 0, 225)
+NoclipBtn.Position = UDim2.new(0, 10, 0, 190)
 NoclipBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 80)
 NoclipBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 NoclipBtn.Font = Enum.Font.Gotham
@@ -282,11 +237,11 @@ NoclipBtn.MouseButton1Click:Connect(function()
     NoclipBtn.BackgroundColor3 = noclipActive and Color3.fromRGB(0, 180, 80) or Color3.fromRGB(180, 50, 50)
 end)
 
--- 6. SUPER SMOOTH PART & OPTIMIZE MAP
+-- 5. SUPER SMOOTH PART & OPTIMIZE MAP
 local AntiLagBtn = Instance.new("TextButton")
 AntiLagBtn.Text = "💥 Clear Map + Super Smooth: OFF"
 AntiLagBtn.Size = UDim2.new(1, -20, 0, 30)
-AntiLagBtn.Position = UDim2.new(0, 10, 0, 265)
+AntiLagBtn.Position = UDim2.new(0, 10, 0, 230)
 AntiLagBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
 AntiLagBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 AntiLagBtn.Font = Enum.Font.Gotham
@@ -390,7 +345,7 @@ end)
 local CloseBtn = Instance.new("TextButton")
 CloseBtn.Text = "❌ Tắt GUI"
 CloseBtn.Size = UDim2.new(1, -20, 0, 30)
-CloseBtn.Position = UDim2.new(0, 10, 0, 420)
+CloseBtn.Position = UDim2.new(0, 10, 0, 400)
 CloseBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
 CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 CloseBtn.Font = Enum.Font.Gotham
@@ -403,7 +358,7 @@ CloseBtn.MouseButton1Click:Connect(function()
 end)
 
 ---------------------------------------------------------
--- LOGIC HỆ THỐNG ORBIT TARGET & CAMERA MẶC ĐỊNH
+-- LOGIC HỆ THỐNG ORBIT TARGET (KHÔNG CAN THIỆP CAMERA)
 ---------------------------------------------------------
 
 -- Noclip Character R6
@@ -418,7 +373,7 @@ RunService.PreRender:Connect(function()
     end
 end)
 
--- Teleport Xoay Vòng Tròn Quanh Target (Orbit)
+-- Teleport Xoay Vòng Tròn Quanh Target
 RunService.RenderStepped:Connect(function(dt)
     if followActive and targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
         local myChar = LocalPlayer.Character
@@ -426,34 +381,23 @@ RunService.RenderStepped:Connect(function(dt)
             local targetHRP = targetPlayer.Character.HumanoidRootPart
             local myHRP = myChar.HumanoidRootPart
             
-            -- Cập nhật góc xoay dựa trên DeltaTime
+            -- Tốc độ xoay cố định 8
             currentAngle = currentAngle + (dt * orbitSpeed)
             
-            -- Tính vị trí đón đầu tương lai theo vận tốc
+            -- Dự đoán vận tốc di chuyển
             local targetVelocity = targetHRP.AssemblyLinearVelocity or targetHRP.Velocity
             local predictedCenter = targetHRP.Position + (targetVelocity * leadFactor)
             
-            -- Tính tọa độ vòng tròn xung quanh Target
+            -- Tính vị trí xoay quanh Target
             local offsetX = math.cos(currentAngle) * orbitRadius
             local offsetZ = math.sin(currentAngle) * orbitRadius
             local finalPos = predictedCenter + Vector3.new(offsetX, 0, offsetZ)
             
-            -- Quay nhân vật nhìn thẳng vào Target
+            -- Xoay mặt về phía Target
             myHRP.CFrame = CFrame.lookAt(finalPos, targetHRP.Position)
         end
     end
-    
-    -- Trả Camera về chế độ mặc định hoàn toàn (Custom)
-    local camera = Workspace.CurrentCamera
-    if camera.CameraType ~= Enum.CameraType.Custom then
-        camera.CameraType = Enum.CameraType.Custom
-    end
-    local myChar = LocalPlayer.Character
-    if myChar and myChar:FindFirstChildOfClass("Humanoid") then
-        if camera.CameraSubject ~= myChar:FindFirstChildOfClass("Humanoid") then
-            camera.CameraSubject = myChar:FindFirstChildOfClass("Humanoid")
-        end
-    end
+    -- CAMERA HOÀN TOÀN MẶC ĐỊNH CỦA GAME (KHÔNG CÓ CODE CAN THIỆP CAM Ở ĐÂY)
 end)
 
 -- Auto Attack M1
