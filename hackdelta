@@ -262,9 +262,9 @@ NoclipBtn.MouseButton1Click:Connect(function()
     NoclipBtn.BackgroundColor3 = noclipActive and Color3.fromRGB(0, 180, 80) or Color3.fromRGB(180, 50, 50)
 end)
 
--- 6. SIÊU ANTILAG - XÓA SẠCH MAP & VFX (CHỈ GIỮ BASEPLATE)
+-- 6. SIÊU ANTILAG - XÓA SẠCH MAP (CHỈ GIỮ LẠI NHÂN VẬT & TẠO SÀN CHỐNG VOID)
 local AntiLagBtn = Instance.new("TextButton")
-AntiLagBtn.Text = "💥 Ultra AntiLag: OFF"
+AntiLagBtn.Text = "💥 Clear Map + Anti-Void: OFF"
 AntiLagBtn.Size = UDim2.new(1, -20, 0, 30)
 AntiLagBtn.Position = UDim2.new(0, 10, 0, 270)
 AntiLagBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
@@ -274,76 +274,61 @@ AntiLagBtn.TextSize = 12
 AntiLagBtn.Parent = Frame
 Instance.new("UICorner", AntiLagBtn).CornerRadius = UDim.new(0, 6)
 
+-- Tạo Sàn Bảo Vệ Chống Rơi Void
+local function createAntiVoidFloor()
+    if not Workspace:FindFirstChild("AntiVoidSafetyFloor") then
+        local floor = Instance.new("Part")
+        floor.Name = "AntiVoidSafetyFloor"
+        floor.Size = Vector3.new(20000, 10, 20000)
+        floor.Position = Vector3.new(0, -50, 0)
+        floor.Anchored = true
+        floor.CanCollide = true
+        floor.Transparency = 1 -- Sàn vô hình
+        floor.Parent = Workspace
+    end
+end
+
 local function cleanObject(obj)
     if not obj then return end
     pcall(function()
-        -- Không xóa Nhân vật chơi
+        -- Không xóa Sàn Chống Void & Nhân vật chơi
+        if obj.Name == "AntiVoidSafetyFloor" then return end
         if Players:GetPlayerFromCharacter(obj) or (obj.Parent and Players:GetPlayerFromCharacter(obj.Parent)) then 
             return 
         end
 
-        -- Giữ lại Baseplate / Sàn đấu chính để nhân vật không rơi hố
-        local objName = obj.Name:lower()
-        if objName:find("baseplate") or objName:find("arena") or objName:find("floor") or objName:find("spawn") then
-            if obj:IsA("BasePart") then
-                obj.Material = Enum.Material.SmoothPlastic
-                obj.Reflectance = 0
-            end
-            return
-        end
-
-        -- Xóa sạch các hiệu ứng VFX, Khói, Mây, Ánh Sáng, Chi tiết
-        if obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Smoke") or obj:IsA("Fire") or obj:IsA("Sparkles") 
-           or obj:IsA("Decal") or obj:IsA("Texture") or obj:IsA("Clouds") or obj:IsA("Atmosphere") or obj:IsA("Beam") then
-            obj:Destroy()
-            return
-        end
-
-        -- Xóa toàn bộ các khối (Building, Debris, Rock, Prop...) trong Map
-        if obj:IsA("BasePart") or obj:IsA("MeshPart") or obj:IsA("CornerWedgePart") or obj:IsA("WedgePart") then
-            obj:Destroy()
-        end
+        -- Xóa mọi thứ khác (Object, Map, Part, Effect, Particle...)
+        obj:Destroy()
     end)
 end
 
 AntiLagBtn.MouseButton1Click:Connect(function()
     autoDestroyParts = true
     
-    -- Tắt hiệu ứng Ánh Sáng & Bóng Râm (Lighting Optimization)
+    -- Tạo Sàn Vô Hình Giữ Người Chơi Không Bị Chết Void
+    createAntiVoidFloor()
+
+    -- Tắt toàn bộ Ánh Sáng, Khói, Mây (Lighting)
     pcall(function()
         Lighting.GlobalShadows = false
         Lighting.FogEnd = 9e9
-        Lighting.FogStart = 0
-        Lighting.ClockTime = 12
-        
-        for _, obj in ipairs(Lighting:GetChildren()) do
-            if obj:IsA("PostEffect") or obj:IsA("BloomEffect") or obj:IsA("BlurEffect") 
-               or obj:IsA("SunRaysEffect") or obj:IsA("DepthOfFieldEffect") or obj:IsA("ColorCorrectionEffect") or obj:IsA("Clouds") then
-                obj:Destroy()
-            end
-        end
+        Lighting:ClearAllChildren()
 
-        -- Tắt hiệu ứng Terrain / Clouds trong Terrain
         if Workspace.Terrain then
-            local clouds = Workspace.Terrain:FindFirstChildOfClass("Clouds")
-            if clouds then clouds:Destroy() end
-            Workspace.Terrain.WaterWaveSize = 0
-            Workspace.Terrain.WaterWaveSpeed = 0
-            Workspace.Terrain.WaterReflectance = 0
-            Workspace.Terrain.WaterTransparency = 0
+            Workspace.Terrain:Clear()
         end
 
-        -- Dọn dẹp toàn bộ Object trong Workspace
+        -- Xóa sạch sẽ tất cả mọi thứ trong Map
         for _, v in ipairs(Workspace:GetChildren()) do
             cleanObject(v)
         end
     end)
     
-    AntiLagBtn.Text = "💥 Ultra AntiLag: ON (Cực Mượt)!"
+    AntiLagBtn.Text = "💥 Clear Map + Anti-Void: ON!"
     AntiLagBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 80)
 end)
 
--- Tự động dọn dẹp liên tục các khối / VFX mới spawn ra từ Server
+-- Tự động dọn dẹp các khối mới sinh ra từ Server
 Workspace.ChildAdded:Connect(function(child)
     if autoDestroyParts then
         task.wait(0.01)
