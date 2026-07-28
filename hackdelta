@@ -1,7 +1,7 @@
 -- =========================================================
--- TSB SCRIPT - VERSION 4.2 (SUPER SMOOTH PART & ANTI-LAG R6)
+-- TSB SCRIPT - VERSION 5.0 (PREDICTIVE HITBOX & FREE CAM R6)
 -- =========================================================
-local SCRIPT_VERSION = 4.2
+local SCRIPT_VERSION = 5.0
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -64,7 +64,7 @@ ToggleGuiBtn.MouseButton1Click:Connect(function()
 end)
 
 local Title = Instance.new("TextLabel")
-Title.Text = "⚡ TSB R6 Target & Super Smooth"
+Title.Text = "⚡ TSB R6 Target Predictive & Cam"
 Title.Size = UDim2.new(1, 0, 0, 30)
 Title.BackgroundTransparency = 1
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -74,8 +74,8 @@ Title.Parent = Frame
 
 -- Biến lưu thông số
 local targetPlayer = nil
-local underDist = 4
-local behindDist = 0
+local underDist = 3
+local leadFactor = 0.18 -- Hệ số đón đầu theo vận tốc (chỉnh độ nhạy lag/ping)
 local autoAttack = false
 local noclipActive = true
 local followActive = false
@@ -155,9 +155,9 @@ ToggleFollowBtn.MouseButton1Click:Connect(function()
     ToggleFollowBtn.BackgroundColor3 = followActive and Color3.fromRGB(0, 180, 80) or Color3.fromRGB(180, 50, 50)
 end)
 
--- 2. DROPDOWN CHỌN KHOẢNG CÁCH UNDER (1-10)
+-- 2. KHOẢNG CÁCH DƯỚI (UNDER DISTANCE)
 local UnderBtn = Instance.new("TextButton")
-UnderBtn.Text = "📐 Under (Dưới): 4 Studs"
+UnderBtn.Text = "📐 Khoảng cách Dưới: 3 Studs"
 UnderBtn.Size = UDim2.new(1, -20, 0, 30)
 UnderBtn.Position = UDim2.new(0, 10, 0, 105)
 UnderBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
@@ -178,7 +178,7 @@ UnderScroll.Parent = Frame
 local UIList2 = Instance.new("UIListLayout", UnderScroll)
 UIList2.SortOrder = Enum.SortOrder.LayoutOrder
 
-for i = 1, 10 do
+for i = 1, 8 do
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(1, 0, 0, 25)
     btn.Text = i .. " Studs"
@@ -190,7 +190,7 @@ for i = 1, 10 do
     btn.Parent = UnderScroll
     btn.MouseButton1Click:Connect(function()
         underDist = i
-        UnderBtn.Text = "📐 Under (Dưới): " .. underDist .. " Studs"
+        UnderBtn.Text = "📐 Khoảng cách Dưới: " .. underDist .. " Studs"
         UnderScroll.Visible = false
     end)
 end
@@ -199,55 +199,11 @@ UnderBtn.MouseButton1Click:Connect(function()
     UnderScroll.Visible = not UnderScroll.Visible
 end)
 
--- 3. DROPDOWN CHỌN KHOẢNG CÁCH BEHIND (0-10)
-local BehindBtn = Instance.new("TextButton")
-BehindBtn.Text = "🔙 Behind (Sau): 0 Studs"
-BehindBtn.Size = UDim2.new(1, -20, 0, 30)
-BehindBtn.Position = UDim2.new(0, 10, 0, 145)
-BehindBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-BehindBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-BehindBtn.Font = Enum.Font.Gotham
-BehindBtn.TextSize = 12
-BehindBtn.Parent = Frame
-Instance.new("UICorner", BehindBtn).CornerRadius = UDim.new(0, 6)
-
-local BehindScroll = Instance.new("ScrollingFrame")
-BehindScroll.Size = UDim2.new(1, -20, 0, 100)
-BehindScroll.Position = UDim2.new(0, 10, 0, 180)
-BehindScroll.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-BehindScroll.Visible = false
-BehindScroll.ZIndex = 10
-BehindScroll.CanvasSize = UDim2.new(0, 0, 0, 275)
-BehindScroll.Parent = Frame
-local UIList3 = Instance.new("UIListLayout", BehindScroll)
-UIList3.SortOrder = Enum.SortOrder.LayoutOrder
-
-for i = 0, 10 do
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, 0, 0, 25)
-    btn.Text = i .. " Studs"
-    btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    btn.Font = Enum.Font.Gotham
-    btn.TextSize = 11
-    btn.ZIndex = 11
-    btn.Parent = BehindScroll
-    btn.MouseButton1Click:Connect(function()
-        behindDist = i
-        BehindBtn.Text = "🔙 Behind (Sau): " .. behindDist .. " Studs"
-        BehindScroll.Visible = false
-    end)
-end
-
-BehindBtn.MouseButton1Click:Connect(function()
-    BehindScroll.Visible = not BehindScroll.Visible
-end)
-
--- 4. AUTO ATTACK TOGGLE
+-- 3. AUTO ATTACK TOGGLE
 local AutoBtn = Instance.new("TextButton")
 AutoBtn.Text = "⚔️ Auto Attack + Skill: OFF"
 AutoBtn.Size = UDim2.new(1, -20, 0, 35)
-AutoBtn.Position = UDim2.new(0, 10, 0, 185)
+AutoBtn.Position = UDim2.new(0, 10, 0, 145)
 AutoBtn.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
 AutoBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 AutoBtn.Font = Enum.Font.GothamBold
@@ -261,11 +217,11 @@ AutoBtn.MouseButton1Click:Connect(function()
     AutoBtn.BackgroundColor3 = autoAttack and Color3.fromRGB(0, 180, 80) or Color3.fromRGB(180, 50, 50)
 end)
 
--- 5. NOCLIP TOGGLE
+-- 4. NOCLIP TOGGLE
 local NoclipBtn = Instance.new("TextButton")
 NoclipBtn.Text = "👻 Noclip (Char): ON"
 NoclipBtn.Size = UDim2.new(1, -20, 0, 30)
-NoclipBtn.Position = UDim2.new(0, 10, 0, 230)
+NoclipBtn.Position = UDim2.new(0, 10, 0, 190)
 NoclipBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 80)
 NoclipBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 NoclipBtn.Font = Enum.Font.Gotham
@@ -279,11 +235,11 @@ NoclipBtn.MouseButton1Click:Connect(function()
     NoclipBtn.BackgroundColor3 = noclipActive and Color3.fromRGB(0, 180, 80) or Color3.fromRGB(180, 50, 50)
 end)
 
--- 6. SUPER SMOOTH PART & OPTIMIZE MAP (TSB R6)
+-- 5. SUPER SMOOTH PART & OPTIMIZE MAP
 local AntiLagBtn = Instance.new("TextButton")
 AntiLagBtn.Text = "💥 Clear Map + Super Smooth: OFF"
 AntiLagBtn.Size = UDim2.new(1, -20, 0, 30)
-AntiLagBtn.Position = UDim2.new(0, 10, 0, 270)
+AntiLagBtn.Position = UDim2.new(0, 10, 0, 230)
 AntiLagBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
 AntiLagBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 AntiLagBtn.Font = Enum.Font.Gotham
@@ -291,7 +247,6 @@ AntiLagBtn.TextSize = 12
 AntiLagBtn.Parent = Frame
 Instance.new("UICorner", AntiLagBtn).CornerRadius = UDim.new(0, 6)
 
--- Kiểm tra xem vật thể thuộc Nhân vật hay không
 local function isR6Character(obj)
     if not obj then return false end
     for _, plr in ipairs(Players:GetPlayers()) do
@@ -302,7 +257,6 @@ local function isR6Character(obj)
     return false
 end
 
--- Tạo Sàn Chống Void Bảo Vệ
 local function createAntiVoidFloor()
     if not Workspace:FindFirstChild("AntiVoidSafetyFloor") then
         local floor = Instance.new("Part")
@@ -317,13 +271,11 @@ local function createAntiVoidFloor()
     end
 end
 
--- HÀM TỐI ƯU SIÊU MỊN & SIÊU MƯỢT (SUPER SMOOTH PART)
 local function processObject(obj)
     if not obj then return end
     pcall(function()
         if obj.Name == "AntiVoidSafetyFloor" or obj:IsA("Camera") or obj:IsA("Terrain") then return end
         
-        -- NHÂN VẬT: Giữ lại hiển thị, ép SmoothPlastic mịn màng
         if isR6Character(obj) then
             if obj:IsA("BasePart") then
                 obj.Material = Enum.Material.SmoothPlastic
@@ -333,13 +285,11 @@ local function processObject(obj)
             return
         end
 
-        -- XÓA SẠCH VFX, KHÓI, MÂY, HIỆU ỨNG RÁC
         if obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Smoke") or obj:IsA("Fire") or obj:IsA("Sparkles") or obj:IsA("Highlight") or obj:IsA("Beam") or obj:IsA("Decal") or obj:IsA("Texture") then
             obj:Destroy()
             return
         end
 
-        -- MAP PART: Ép SmoothPlastic + Tắt bóng đổ + Ẩn bớt để chống Lag
         if obj:IsA("BasePart") or obj:IsA("MeshPart") then
             obj.Material = Enum.Material.SmoothPlastic
             obj.Reflectance = 0
@@ -357,7 +307,6 @@ AntiLagBtn.MouseButton1Click:Connect(function()
     autoOptimize = true
     createAntiVoidFloor()
 
-    -- Tối ưu Lighting & Bầu trời
     pcall(function()
         Lighting.GlobalShadows = false
         Lighting.FogEnd = 9e9
@@ -373,7 +322,6 @@ AntiLagBtn.MouseButton1Click:Connect(function()
         if Workspace.Terrain then Workspace.Terrain:Clear() end
     end)
 
-    -- Áp dụng Super Smooth cho toàn bộ game
     for _, v in ipairs(Workspace:GetDescendants()) do
         processObject(v)
     end
@@ -382,7 +330,6 @@ AntiLagBtn.MouseButton1Click:Connect(function()
     AntiLagBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 80)
 end)
 
--- Tự động làm mịn & dọn dẹp các Part skill mới sinh ra
 Workspace.DescendantAdded:Connect(function(child)
     if autoOptimize then
         task.wait(0.02)
@@ -392,7 +339,7 @@ Workspace.DescendantAdded:Connect(function(child)
     end
 end)
 
--- 7. CLOSE BUTTON
+-- CLOSE BUTTON
 local CloseBtn = Instance.new("TextButton")
 CloseBtn.Text = "❌ Tắt GUI"
 CloseBtn.Size = UDim2.new(1, -20, 0, 30)
@@ -409,7 +356,7 @@ CloseBtn.MouseButton1Click:Connect(function()
 end)
 
 ---------------------------------------------------------
--- LOGIC HỆ THỐNG TARGET, ATTACK & NOCLIP
+-- LOGIC HỆ THỐNG TARGET DỰ ĐOÁN HITBOX & CAMERA TỰ DO
 ---------------------------------------------------------
 
 -- Noclip Character R6
@@ -424,7 +371,7 @@ RunService.PreRender:Connect(function()
     end
 end)
 
--- Teleport + Camera Target
+-- Teleport Đón Đầu Hitbox + Camera Vuốt Tự Do
 RunService.RenderStepped:Connect(function()
     if followActive and targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
         local myChar = LocalPlayer.Character
@@ -432,21 +379,28 @@ RunService.RenderStepped:Connect(function()
             local targetHRP = targetPlayer.Character.HumanoidRootPart
             local myHRP = myChar.HumanoidRootPart
             
-            local targetCF = targetHRP.CFrame
-            local posBehind = targetCF.Position - (targetCF.LookVector * behindDist)
-            local finalPos = posBehind - Vector3.new(0, underDist, 0)
+            -- Tính vị trí dự đoán tương lai theo vận tốc chạy của Target (Lead Position)
+            local targetVelocity = targetHRP.AssemblyLinearVelocity or targetHRP.Velocity
+            local predictedPos = targetHRP.Position + (targetVelocity * leadFactor)
             
+            -- Vị trí đứng: Dưới chân vị trí dự đoán để Hitbox vươn chính xác vào mặt
+            local finalPos = predictedPos - Vector3.new(0, underDist, 0)
+            
+            -- Quay mặt bản thân về phía Target
             myHRP.CFrame = CFrame.lookAt(finalPos, targetHRP.Position)
             
+            -- CAMERA TỰ DO (Vuốt thoải mái, tự hướng về Target khi xoay)
             local camera = Workspace.CurrentCamera
-            camera.CameraType = Enum.CameraType.Scriptable
-            local camPos = targetCF.Position - (targetCF.LookVector * 7) + Vector3.new(0, 2, 0)
-            camera.CFrame = CFrame.lookAt(camPos, targetHRP.Position)
+            if camera.CameraType ~= Enum.CameraType.Custom then
+                camera.CameraType = Enum.CameraType.Custom
+            end
+            camera.CameraSubject = targetPlayer.Character:FindFirstChildOfClass("Humanoid") or myChar:FindFirstChildOfClass("Humanoid")
         end
     else
         local camera = Workspace.CurrentCamera
-        if camera.CameraType == Enum.CameraType.Scriptable then
-            camera.CameraType = Enum.CameraType.Custom
+        local myChar = LocalPlayer.Character
+        if myChar and myChar:FindFirstChildOfClass("Humanoid") then
+            camera.CameraSubject = myChar:FindFirstChildOfClass("Humanoid")
         end
     end
 end)
