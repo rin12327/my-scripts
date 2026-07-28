@@ -1,7 +1,7 @@
 -- =========================================================
--- TSB SCRIPT - VERSION 4.0 (FIX LỖI BIẾN MẤT NHÂN VẬT)
+-- TSB SCRIPT - VERSION 4.1 (SPECIAL FOR TSB R6)
 -- =========================================================
-local SCRIPT_VERSION = 4.0
+local SCRIPT_VERSION = 4.1
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -23,7 +23,7 @@ ScreenGui.Name = "TSB_Follow_Gui"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = PlayerGui
 
--- BẢNG PHIÊN BẢN (GÓC TRÊN MÀN HÌNH)
+-- BẢNG PHIÊN BẢN
 local VersionLabel = Instance.new("TextLabel")
 VersionLabel.Size = UDim2.new(0, 180, 0, 25)
 VersionLabel.Position = UDim2.new(0, 10, 0, 10)
@@ -32,7 +32,7 @@ VersionLabel.BackgroundTransparency = 0.4
 VersionLabel.TextColor3 = Color3.fromRGB(0, 255, 127)
 VersionLabel.Font = Enum.Font.GothamBold
 VersionLabel.TextSize = 12
-VersionLabel.Text = "⚡ TSB Script Ver: " .. string.format("%.1f", SCRIPT_VERSION)
+VersionLabel.Text = "⚡ TSB R6 Script Ver: " .. string.format("%.1f", SCRIPT_VERSION)
 VersionLabel.Parent = ScreenGui
 Instance.new("UICorner", VersionLabel).CornerRadius = UDim.new(0, 6)
 
@@ -64,7 +64,7 @@ ToggleGuiBtn.MouseButton1Click:Connect(function()
 end)
 
 local Title = Instance.new("TextLabel")
-Title.Text = "⚡ TSB Follow & Auto Attack"
+Title.Text = "⚡ TSB R6 Target & Anti-Lag"
 Title.Size = UDim2.new(1, 0, 0, 30)
 Title.BackgroundTransparency = 1
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -279,7 +279,7 @@ NoclipBtn.MouseButton1Click:Connect(function()
     NoclipBtn.BackgroundColor3 = noclipActive and Color3.fromRGB(0, 180, 80) or Color3.fromRGB(180, 50, 50)
 end)
 
--- 6. SIÊU ANTI-LAG (KHÔNG XÓA PART -> CHỈ ẨN MAP & MỊN HOÁ ĐỂ KHÔNG MẤT NHÂN VẬT)
+-- 6. OPTIMIZE MAP & BẢO VỆ NHÂN VẬT R6
 local AntiLagBtn = Instance.new("TextButton")
 AntiLagBtn.Text = "💥 Clear Map + Anti-Void: OFF"
 AntiLagBtn.Size = UDim2.new(1, -20, 0, 30)
@@ -291,8 +291,8 @@ AntiLagBtn.TextSize = 12
 AntiLagBtn.Parent = Frame
 Instance.new("UICorner", AntiLagBtn).CornerRadius = UDim.new(0, 6)
 
--- Kiểm tra xem vật thể có phải người chơi hay không
-local function isCharacter(obj)
+-- Hàm kiểm tra chính xác Nhân vật R6
+local function isR6Character(obj)
     if not obj then return false end
     for _, plr in ipairs(Players:GetPlayers()) do
         if plr.Character and (obj == plr.Character or obj:IsDescendantOf(plr.Character)) then
@@ -302,7 +302,7 @@ local function isCharacter(obj)
     return false
 end
 
--- Tạo Sàn Chống Void Bảo Vệ
+-- Tạo Sàn Chống Void
 local function createAntiVoidFloor()
     if not Workspace:FindFirstChild("AntiVoidSafetyFloor") then
         local floor = Instance.new("Part")
@@ -317,14 +317,14 @@ local function createAntiVoidFloor()
     end
 end
 
--- Dọn dẹp an toàn: Chỉ ẩn khối map, XÓA VFX & Clouds, GIỮ NGUYÊN Nhân Vật
+-- Xử lý thuộc tính vật thể (Xóa VFX, Cloud, Smooth Part & Mở Noclip Map)
 local function processObject(obj)
     if not obj then return end
     pcall(function()
         if obj.Name == "AntiVoidSafetyFloor" or obj:IsA("Camera") or obj:IsA("Terrain") then return end
         
-        -- Nếu là Nhân vật -> Đưa về SmoothPlastic, BẢO VỆ HIỂN THỊ
-        if isCharacter(obj) then
+        -- NẾU LÀ NHÂN VẬT R6 -> BẢO VỆ HIỂN THỊ 100%, ĐƯA VỀ SMOOTH PLASTIC
+        if isR6Character(obj) then
             if obj:IsA("BasePart") then
                 obj.Material = Enum.Material.SmoothPlastic
                 obj.Transparency = 0
@@ -332,13 +332,13 @@ local function processObject(obj)
             return
         end
 
-        -- Xóa triệt để các loại hiệu ứng VFX, Mây, Khói, Hạt
+        -- XÓA SẠCH HIỆU ỨNG VFX / KHÓI / MÂY
         if obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Smoke") or obj:IsA("Fire") or obj:IsA("Sparkles") or obj:IsA("Highlight") or obj:IsA("Beam") then
             obj:Destroy()
             return
         end
 
-        -- Nếu là Khối Part của Map -> Làm vô hình (Transparency = 1) thay vì Destroy để không bị mất nhân vật
+        -- VỚI MAP PARTS -> Smooth & Vô hình (Không xóa để tránh làm hỏng khớp R6)
         if obj:IsA("BasePart") or obj:IsA("MeshPart") then
             obj.Transparency = 1
             obj.CanCollide = false
@@ -351,7 +351,6 @@ AntiLagBtn.MouseButton1Click:Connect(function()
     autoOptimize = true
     createAntiVoidFloor()
 
-    -- Tắt ánh sáng, bóng đổ, xóa bầu trời & mây
     pcall(function()
         Lighting.GlobalShadows = false
         Lighting.FogEnd = 9e9
@@ -367,7 +366,6 @@ AntiLagBtn.MouseButton1Click:Connect(function()
         if Workspace.Terrain then Workspace.Terrain:Clear() end
     end)
 
-    -- Áp dụng xử lý cho toàn bộ Workspace
     for _, v in ipairs(Workspace:GetDescendants()) do
         processObject(v)
     end
@@ -376,11 +374,10 @@ AntiLagBtn.MouseButton1Click:Connect(function()
     AntiLagBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 80)
 end)
 
--- Tự động làm ẩn các Part kĩ năng mới sinh ra từ Server mà không đụng vào Người chơi
 Workspace.DescendantAdded:Connect(function(child)
     if autoOptimize then
         task.wait(0.02)
-        if not isCharacter(child) then
+        if not isR6Character(child) then
             processObject(child)
         end
     end
@@ -406,7 +403,7 @@ end)
 -- LOGIC HỆ THỐNG TARGET, ATTACK & NOCLIP
 ---------------------------------------------------------
 
--- Noclip Character
+-- Noclip Character R6
 RunService.PreRender:Connect(function()
     if noclipActive then
         local char = LocalPlayer.Character
@@ -485,7 +482,7 @@ task.spawn(function()
     end
 end)
 
--- Khóa Chống Rơi Void (Tự động giữ Y an toàn)
+-- Giữ Y An Toàn Chống Rơi Void
 RunService.Stepped:Connect(function()
     for _, plr in ipairs(Players:GetPlayers()) do
         local char = plr.Character
